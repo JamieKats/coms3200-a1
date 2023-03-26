@@ -17,6 +17,14 @@ QUESTIONS
     from their channel do you just print to stdout which would insert 
     somewhere in the clients typed message
     - if a client moves from one queue to another does their waiting time reset?
+    - if user inputs '        this is a message         ' do we send the message
+    with the spaces on either side or can we strip the spaces???
+    - is anything displayed to the client when they have ben /kick(ed) by the 
+    server?
+    - can we use concurrent.futures.ThreadPoolExecutor() ? is a context manager 
+    for threads, will auto handle .join() on all threads in the threadpool
+        - https://realpython.com/intro-to-python-threading/
+        - https://docs.python.org/3/library/concurrent.futures.html
 """
 from socket import *
 from threading import *
@@ -27,6 +35,7 @@ import queue
 from datetime import datetime
 import signal
 import os
+import concurrent
 
 SERVER_NAME = 'server'
 SERVER_PORT = 14000
@@ -38,15 +47,15 @@ CONFIG_COMMAND = 1
 
 class User:
     def __init__(self, name, port, connectiion_socket, addr) -> None:
-        self.name = name
-        self.port = port
-        self.connection_socket = connectiion_socket
+        self.name: str = name
+        self.port: int = port
+        self.connection_socket: socket = connectiion_socket
         self.addr = addr
         
     def send_message(self, message_type, message):
         msg = json.dumps({
-            "msg_type": message_type,
-            "msg": message
+            "message_type": message_type,
+            "message": message
         })
         self.connection_socket.send(msg.encode())
     
@@ -103,7 +112,7 @@ class Server:
         # initialise channels
         self.channels = self.create_channels()
         
-        self.client_threads = []
+        self.threads = []
         
         # set up listening socket
         self.server_socket = socket(AF_INET, SOCK_STREAM)
@@ -113,11 +122,17 @@ class Server:
         # set signal handler
         signal.signal(signal.SIGINT, self.shut_down)
         
+        # queue for messages from server command/client messages to buisness logic thread
+        self.incoming_queue = queue.Queue()
+        
+        
+        
     def shut_down(self):
         # close all network connections
         # for channel in self.channels:
         #     for user in self.
         # # close all threads
+        pass
         
     def load_config(self, config_path):
         try:
@@ -177,7 +192,28 @@ class Server:
         
         wait for next connection
         """
+        # create daeomon thread to listen for server commands
+        server_command_thread = Thread(
+            target=self.server_command_thread, 
+            args=(self.incoming_queue, ), 
+            daemon=True)
+        server_command_thread.start()
+        
+        # create thread to process channel queues, and execute logic when a 
+        # client msg or server command is received
+        server_logic_thread = Thread(
+            target=self.server_logic_thread,
+            args=(self.incoming_queue, self.channels, ),
+            daemon=False
+        )
+        self.threads.append(server_logic_thread)
+        server_logic_thread.start()
+        
+        with concurrent.futures.ThreadPoolExecutor() as exetuor:
+        
+        
         while True:
+            # accept new connection and create User
             connection_socket, addr = self.server_socket.accept()
             client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
             client_settings = json.loads(client_settings)
@@ -186,18 +222,24 @@ class Server:
                 port=client_settings["port"],
                 connectiion_socket=connection_socket,
                 addr=addr)
-            # self.channels[client_settings["port"]].add
+            
+            # create listener thread for new user
+            client_listener_thread = Thread(target=self.client_listener_thread, args=(self.channels, client,), daemon=True)
+            self.threads.append(client_listener_thread)
+            client_listener_thread.start()
             
             
-            # print(f"accept connection {connection_socket}, {addr}")
+    def server_command_thread(self, incoming_queue: queue.Queue):
+        while True:
+            server_command = input().strip()
+            message = {
+                "messsage_type": "command",
+                "message": server_command
+            }
+            incoming_queue.put(message)
+    
             
-            # give client thread reference to channels object
-            client_thread = Thread(target=self.client_thread, args=(self.channels, client,))
-            self.client_threads.append(client_thread)
-            client_thread.start()
-            
-            
-    def client_thread(self, channels: dict[Channel], client: User):
+    def client_listener_thread(self, channels: dict[Channel], client: User):
         # add client to channel queue
         print(channels)
         channel: Channel = channels[str(client.port)]
@@ -209,9 +251,7 @@ class Server:
         print(f"Client {client.name} started thread")
         
         while True:
-            
-            print(f"in client thread {self.channels}")
-            time.sleep(1)
+            client.connection_socket.recv(MSG_BUFFER_SIZE)
             
     
         
