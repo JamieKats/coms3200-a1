@@ -25,6 +25,9 @@ QUESTIONS
     for threads, will auto handle .join() on all threads in the threadpool
         - https://realpython.com/intro-to-python-threading/
         - https://docs.python.org/3/library/concurrent.futures.html
+    - if the channel is empty but there are multiple people in the queue, 
+    should each user be updated as they move through the queue and into the chat
+    room or should they only get the message that they have joined the channel
 """
 from socket import *
 from threading import *
@@ -86,11 +89,16 @@ class Channel:
         self.name = name
         self.port = port
         self.max_users = max_users
-        self.active_users = []
+        self.chat_lobby = []
         self.waiting_queue: ClientQueue = ClientQueue()
         
-    def add_user(self, user: User):
+    def add_waiting_user(self, user: User):
         self.waiting_queue.put(user)
+        
+    def move_user_to_lobby(self):
+        user = self.waiting_queue.get()
+        self.chat_lobby.append(user)
+        join_message = 
         
     
     
@@ -125,14 +133,16 @@ class Server:
         # queue for messages from server command/client messages to buisness logic thread
         self.incoming_queue = queue.Queue()
         
+        self.shutdown_server = False
         
         
-    def shut_down(self):
-        # close all network connections
-        # for channel in self.channels:
-        #     for user in self.
-        # # close all threads
-        pass
+        
+    # def shut_down(self):
+    #     # close all network connections
+    #     # for channel in self.channels:
+    #     #     for user in self.
+    #     # # close all threads
+    #     pass
         
     def load_config(self, config_path):
         try:
@@ -240,9 +250,8 @@ class Server:
             
     def client_listener_thread(self, channels: dict[Channel], client: User):
         # add client to channel queue
-        print(channels)
         channel: Channel = channels[str(client.port)]
-        channel.add_user(client)
+        channel.add_waiting_user(client)
         
         # send client welcome message
         welcome_msg = f"[Server message ({self.get_time()})] Welcome to the {channel.name} channel, {client.name}."
@@ -253,8 +262,44 @@ class Server:
             client.connection_socket.recv(MSG_BUFFER_SIZE)
             
     
-    def server_logic_thread(self, incoming_queue, channels):
+    def server_logic_thread(self, incoming_message_queue, channels):
+        """
+            - Loop over queues and push new clients into channels + send queue update
+            messages to clients
         
+            - receive messages from client listeners and process messages (can be normal
+            chat message or a command)
+        
+            - receive server commands and process them
+            
+        If a shutdown command received then set flag and exit thread
+        """
+        while not self.shutdown_server:
+            self.process_channel_queues(channels)
+            
+            self.process_client_messages(incoming_message_queue, channels)
+            
+            self.process_server_commands(incoming_message_queue, channels)
+            
+            
+    def process_channel_queues(self, channels):
+        for channel in channels:
+            users_in_lobby = len(channel.chat_lobby)
+            if users_in_lobby < channel.max_users:
+                users_to_add = channel.max_users - users_in_lobby
+                for i in range(0, users_to_add):
+                    user: User = channel.waiting_queue().get()
+                    channel.chat_lobby.append(user)
+                    # send lobby join message
+                    
+            
+        
+    def process_client_messages(self, incoming_queue, channels):
+        pass
+    
+    
+    def process_server_commands(self, incoming_queue, channels):
+        pass
         
         
 def main():
