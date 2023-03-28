@@ -204,12 +204,11 @@ class Server:
         server_logic_thread = Thread(
             target=self.server_logic_thread,
             args=(self.incoming_queue, self.channels, ),
-            daemon=False
-        )
+            daemon=False)
         self.threads.append(server_logic_thread)
         server_logic_thread.start()
         
-        with concurrent.futures.ThreadPoolExecutor() as exetuor:
+        # with concurrent.futures.ThreadPoolExecutor() as exetuor:
         
         
         while True:
@@ -254,6 +253,8 @@ class Server:
             client.connection_socket.recv(MSG_BUFFER_SIZE)
             
     
+    def server_logic_thread(self, incoming_queue, channels):
+        
         
         
 def main():
