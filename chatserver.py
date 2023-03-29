@@ -10,24 +10,38 @@ position in the channel
 QUESTIONS
     - if the channel is not full does the server still send the client the queue
     message saying they are in a queue??
+    only send 0 queue msg when channel is full
     - if the channel is full does the queue wait time message get printed every
     time the number of clients ahead reduces???
+    yes
     - are we allowed to use json module
+    A. if runs on moss then ok
     - if client is half way through typing a message and a message is received 
     from their channel do you just print to stdout which would insert 
     somewhere in the clients typed message
+    A person typing message will have their input interupted by the new message
     - if a client moves from one queue to another does their waiting time reset?
+    no timer for people in queue, timer only applies to people in channel
     - if user inputs '        this is a message         ' do we send the message
     with the spaces on either side or can we strip the spaces???
+    A send full thing. if command has space in front then it is not a valid command
     - is anything displayed to the client when they have ben /kick(ed) by the 
     server?
+    A client process just ends, no msg printed for client
     - can we use concurrent.futures.ThreadPoolExecutor() ? is a context manager 
     for threads, will auto handle .join() on all threads in the threadpool
         - https://realpython.com/intro-to-python-threading/
         - https://docs.python.org/3/library/concurrent.futures.html
+    If it runs  on moss then OK
     - if the channel is empty but there are multiple people in the queue, 
     should each user be updated as they move through the queue and into the chat
     room or should they only get the message that they have joined the channel
+    A multiple people joining queue at same time for an empty channel get the 
+    queue messages still. e.g. 50 people joining an empty channel of size 100 
+    will get all queue update messages as all the people in front move into the channel
+    
+    A
+    - if someone leaves queue in middle ALL users in queue get queue position msg
 """
 from socket import *
 from threading import *
@@ -48,12 +62,19 @@ CONFIG_COMMAND = 1
 
 # class Message()
 
+def get_time(self):
+        """
+        Returns the time in 24 hour hh:mm:ss format
+        """
+        return datetime.now().strftime("%H:%M:%S")
+
 class User:
     def __init__(self, name, port, connectiion_socket, addr) -> None:
         self.name: str = name
         self.port: int = port
         self.connection_socket: socket = connectiion_socket
         self.addr = addr
+        self.time_last_message = datetime.now()
         
     def send_message(self, message_type, message):
         msg = json.dumps({
@@ -65,12 +86,24 @@ class User:
     def receive_message(self):
         pass
 
-class ClientQueue(queue.Queue):
-    def __init__(self, maxsize: int = 0) -> None:
-        super().__init__(maxsize)
-        self.lock = Lock()
-    
-    def remove_user(self, username):
+class ClientQueue(list):
+    def __init__(self) -> None:
+        super().__init__()
+        self.lock: Lock = Lock()
+        
+    def put(self, user: User):
+        self.lock.acquire()
+        self.append(user)
+        self.lock.release()
+        
+    def get(self):
+        self.lock.acquire()
+        user: User = self.pop(0)
+        self.send_waiting_queue_location_message()
+        self.lock.release()
+        return user
+        
+    def remove_user(self, user):
         """_summary_
         take lock and dequque to temporary queue, dont add removed user from queue
         and send users behing them new message of how mnay people there is infront
@@ -79,10 +112,28 @@ class ClientQueue(queue.Queue):
         Args:
             username (_type_): _description_
         """
-        pass
+        self.lock.acquire()
+        self.remove(user)
+        self.send_waiting_queue_location_message()
+        self.lock.release()
 
-    def queue_user(self, ):
-        pass
+    
+    def send_waiting_queue_location_message(self):
+        """
+        Sends the location message for all clients in the queue
+        """
+        # self.lock.acquire()
+            
+        for i, user in enumerate(self):
+            user_location = i + 1
+            queue_loc_msg = f"[Server message ({get_time()})] You are in the \
+                queue and there are {user_location} user(s) ahead of you."
+            user.send_message(queue_loc_msg, user)        
+        
+        # self.lock.release()
+        
+        
+
     
 class Channel:
     def __init__(self, name, port, max_users) -> None:
@@ -94,16 +145,52 @@ class Channel:
         
     def add_waiting_user(self, user: User):
         self.waiting_queue.put(user)
+        welcome_msg = f"[Server message ({get_time()})] Welcome to the {channel.name} channel, {client.name}."
+        user.send_message(welcome_msg)
         
     def move_user_to_lobby(self):
         user = self.waiting_queue.get()
         self.chat_lobby.append(user)
-        join_message = 
         
-    
-    
-    
+        # send queue location message to all people in queue
         
+        
+        # send <username> joined message to everyone in channel
+        join_message = f"[Server message ({get_time()})] {user.name} has joined the channel."
+        channel.send_message(join_message)
+        
+        # print user joined message to servers stdout
+        server_msg = f"[Server message ({get_time()})] {user.name} has joined the {self.name} channel."
+        
+        
+    def send_message(self, message, user=None):
+        """
+        Sends the message to all users in the channel is user=None,
+        otherwise the message is sent to the user specified.
+        """
+        if user is not None:
+            # send message to user
+            for user in self.chat_lobby:
+                if user.name == user.name:
+                    user.send_message(message)
+            return
+        
+        for user in self.chat_lobby:
+            user.send_message(message)
+            
+    def send_waiting_queue_location_message():
+        """
+        Sends the location message for all clients in the queue
+        """
+        queue_loc_msg = f"[Server message ({get_time()})] You are in the queue \
+            and there are {} user(s) ahead of you."
+            
+        for user in self.user
+        
+
+
+
+
 
 class Server:
     def __init__(self) -> None:
@@ -157,12 +244,8 @@ class Server:
                 "name": config_options[1],
                 "max_users": config_options[3]
                 }
-            
-    def get_time(self):
-        """
-        Returns the time in 24 hour hh:mm:ss format
-        """
-        return datetime.now().strftime("%H:%M:%S")
+          
+    
             
             
     def create_channels(self):
@@ -254,8 +337,8 @@ class Server:
         channel.add_waiting_user(client)
         
         # send client welcome message
-        welcome_msg = f"[Server message ({self.get_time()})] Welcome to the {channel.name} channel, {client.name}."
-        client.send_message("basic", welcome_msg)
+        # welcome_msg = f"[Server message ({self.get_time()})] Welcome to the {channel.name} channel, {client.name}."
+        # client.send_message("basic", welcome_msg)
         print(f"Client {client.name} started thread")
         
         while True:
@@ -266,6 +349,8 @@ class Server:
         """
             - Loop over queues and push new clients into channels + send queue update
             messages to clients
+            
+            - loop over all users and kick out if timer > AFK time
         
             - receive messages from client listeners and process messages (can be normal
             chat message or a command)
@@ -286,11 +371,12 @@ class Server:
         for channel in channels:
             users_in_lobby = len(channel.chat_lobby)
             if users_in_lobby < channel.max_users:
-                users_to_add = channel.max_users - users_in_lobby
+                users_to_add = min(
+                    channel.max_users - users_in_lobby, 
+                    channel.waiting_queue.qsize())
+                
                 for i in range(0, users_to_add):
-                    user: User = channel.waiting_queue().get()
-                    channel.chat_lobby.append(user)
-                    # send lobby join message
+                    channel.move_user_to_lobby()
                     
             
         
