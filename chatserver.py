@@ -42,6 +42,11 @@ QUESTIONS
     
     A
     - if someone leaves queue in middle ALL users in queue get queue position msg
+    
+    
+    - how do the qns foir part A work? are they changing everytime you start a new attempt on BB?
+    are we also suppose to submit answers on BB or just the solutions we post as the PDF
+    - what file types expected to be sent??
 """
 import socket
 import threading
@@ -86,7 +91,7 @@ class User:
         # self.connection_socket.send(msg.encode())
         encoded_msg = json.dumps(message).encode()
         self.connection_socket.send(encoded_msg)
-    
+
     def shutdown(self):
         # https://stackoverflow.com/questions/409783/socket-shutdown-vs-socket-close
         "Sends shutdown message to client and closes socket"
@@ -96,7 +101,7 @@ class User:
         }
         self.send_message(shutdown_msg)
         self.connection_socket.shutdown(socket.SHUT_RDWR)
-        # self.connection_socket.close()
+        self.connection_socket.close()
         
 
 class ClientQueue(list):
@@ -147,7 +152,7 @@ class ClientQueue(list):
             }
             user.send_message(message, user)
 
-    
+
 class Channel:
     def __init__(self, name, port, max_users) -> None:
         self.name: str = name
@@ -158,12 +163,31 @@ class Channel:
         
     def add_waiting_user(self, user: User):
         self.waiting_queue.put(user)
+        
+            
         welcome_msg = f"[Server message ({get_time()})] Welcome to the {self.name} channel, {user.name}."
         message = {
             'message_type': 'basic',
             'message': welcome_msg
         }
         user.send_message(message)
+        
+        # if user added is only one in queue and there is a free spot in the lobby return
+        # print(len(self.waiting_queue))
+        # print(len(self.chat_lobby))
+        # print(self.max_users)
+        if len(self.waiting_queue) == 1 and len(self.chat_lobby) < self.max_users:
+            return
+        
+        queue_loc_msg = f"[Server message ({get_time()})] You are in the " \
+            + f"waiting queue and there are {len(self.waiting_queue) - 1} " \
+            + "user(s) ahead of you."
+        message = {
+            'message_type': 'basic',
+            'message': queue_loc_msg
+        }
+        user.send_message(message)
+
         
     def move_user_to_lobby(self):
         # if noone in wating queue return early
@@ -187,20 +211,20 @@ class Channel:
         print(server_msg)
         
         
-    def send_message(self, message, user=None):
+    def send_message(self, message, username:str =None):
         """
         Sends the message to all users in the channel is user=None,
         otherwise the message is sent to the user specified.
         """
-        if user is not None:
+        if username is not None:
             # send message to user
-            for user in self.chat_lobby:
-                if user.name == user.name:
-                    user.send_message(message)
+            for chat_client in self.chat_lobby:
+                if username == chat_client.name:
+                    chat_client.send_message(message)
             return
         
-        for user in self.chat_lobby:
-            user.send_message(message)
+        for chat_client in self.chat_lobby:
+            chat_client.send_message(message)
             
     def shutdown(self):
         """
@@ -216,7 +240,62 @@ class Channel:
         for client in self.chat_lobby:
             client.shutdown()
             
+    def user_in_chat_lobby(self, username: str) -> bool:
+        """
+        Checks if the provided user is in the chat lobby. Returns True if so, 
+        False otherwise 
 
+        Returns:
+            bool: _description_
+        """
+        for chat_user in self.chat_lobby:
+            if chat_user.name == username:
+                return True
+        return False
+    
+    def close_client(self, username: str):
+        """
+        Sends the client a shutdown command before clsoing threads and 
+        connections for client
+        Closes connections and threads a
+
+        Args:
+            username (str): _description_
+
+        Raises:
+            NotImplementedError: _description_
+            NotImplementedError: _description_
+            NotImplementedError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        # message = {
+        #     "message_type": "command",
+        #     "command": "/shutdown"
+        # }
+        # self.send_message(message, username)
+        
+        client_quit_msg = f"[Server message ({get_time()})] {username} has left the channel."
+        print(client_quit_msg)
+        
+        if self.user_in_chat_lobby(username):
+            for user in self.chat_lobby():
+                if user.name == username:
+                    user.shutdown()
+                    message = {
+                        "message_type": "basic",
+                        "message": client_quit_msg
+                    }
+                    self.send_message(message)
+        else:
+            # kill client sockets
+            for user in self.waiting_queue():
+                if user.name == username:
+                    self.waiting_queue.remove_user(user)
+                    user.shutdown()
+                    
+        
 class Server:
     def __init__(self) -> None:
         """
@@ -224,6 +303,9 @@ class Server:
         One thread created for every client connection
         One thread to handle stdin input
         """
+        if len(sys.argv) != 2:
+            exit(1)
+        
         config_path = sys.argv[CONFIG_COMMAND]
         
         self.channel_configs = {}
@@ -253,19 +335,19 @@ class Server:
         
     # NOTE two shutdowns temporary, one for sigint one for shutdown command
     def shutdown(self, signum=None, frame=None):
-        print("in shutdwon")
         # close all client sockets in queues and channels
         for channel in self.channels.values():
             channel.shutdown()
         
         # close bind socket
+        self.server_socket.shutdown(socket.SHUT_RDWR)
         self.server_socket.close()
         
         # close command daemon thread
         
         
         # exit process
-        print("at exit")
+        time.sleep(1) # NOTE tmp sleep aded before exit to allow daemon threads to throw exceptions to fix
         exit()
         
     # def shutdown(self, signum, frame):
@@ -390,8 +472,12 @@ class Server:
             
     def server_listen_thread(self):
         while True:
-            # accept new connection and create User
-            connection_socket, addr = self.server_socket.accept()
+            # If OSError thrown because of closed socket return
+            try:
+                connection_socket, addr = self.server_socket.accept()
+            except OSError:
+                return
+            
             client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
             client_settings = json.loads(client_settings)
             client = User(
@@ -414,7 +500,7 @@ class Server:
         while True:
             server_command = input().strip()
             message = {
-                "messsage_type": "command",
+                "messsage_type": "server_command",
                 "message": server_command
             }
             incoming_queue.put(message)
@@ -478,6 +564,8 @@ class Server:
             
     def process_channel_queues(self, channels):
         for channel in channels.values():
+            # print(f"Size of queue = {len(channel.waiting_queue)}")
+            # print(f"Num of people in lobby = {len(channel.chat_lobby)}/{channel.max_users}")
             users_in_lobby = len(channel.chat_lobby)
             if users_in_lobby < channel.max_users:
                 # print("IN PROCESS CHANNEL QUEUES")
@@ -504,12 +592,24 @@ class Server:
         except queue.Empty as e:
             return
         
+        channel = channels[message["port"]]
+        
+        # Process incoming client commands
+        # if message["message_type"] == "server_command":
+        #     pass
+        
+        if message["message_type"] == "client_command":
+            self.handle_client_command(message)
         
         # incoming client msg can be command or normal msg
         
         # if normal msg
         # TODO befor this 'if' need to check if client is muted or not
         if message["message_type"] == "basic":
+            # if msg from user in a queue return early
+            if not channel.user_in_chat_lobby(message["sender"]):
+                return
+            
             # convert client msg to server formatted msg
             formatted_msg = f"[{message['sender']} ({get_time()})] {message['message']}"
             print(formatted_msg)
@@ -518,7 +618,6 @@ class Server:
                 'message': formatted_msg
             }
             
-            channel = channels[message["port"]]
             for user in channel.chat_lobby:
                 if user.name != message["sender"]:
                     user.send_message(server_msg)
@@ -526,6 +625,94 @@ class Server:
     
     def process_server_commands(self, incoming_queue, channels):
         pass
+    
+    def get_user(self, username: str) -> User:
+        """
+        Returns the user object for the username given, if the user doesnt 
+        exist in any channels None is returned.
+
+        Args:
+            username (str): _description_
+
+        Returns:
+            User: _description_
+        """
+        for channel in self.channels.values():
+            for client in channel.chat_lobby():
+                if client.name == username:
+                    return client
+            for client in channel.waiting_queue():
+                if client.name == username:
+                    return client
+        return None
+    
+    def handle_client_commands(self, message):
+        command = message["command"]
+        if command == '/whisper':
+            self.whisper(message)
+        elif command == '/quit':
+            self.quit()
+        elif command == '/list':
+            self.list()
+        elif command == '/switch':
+            self.switch()
+        elif command == '/send':
+            self.send()
+                
+                
+    def whisper(self, received_message):
+        args = received_message["args"].split(" ")
+        whisper_target = args[0]
+        whisper_message = args[1]
+        
+        target_channel: Channel = self.channels[int(message["port"])]
+        if target_channel.user_in_chat_lobby(whisper_target):
+            # whisper target not in chat lobby
+            no_user_msg = f"[Server message ({get_time()})] {whisper_target} is not here." 
+            message = {
+                "message_type": "basic",
+                "message": no_user_msg
+            }
+        else:
+            formated_whisper = f"[{received_message['sender']} whispers to you: {get_time()}] {whisper_message}"
+            message = {
+                "message_type": "basic",
+                "message": formated_whisper
+            }
+        target_channel.send_message(message, message["sender"])
+        
+        # print server whisper message
+        server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"
+        print(server_msg)
+            
+    
+    def quit(self, message):
+        sender = message["sender"]
+        channel_port = message["port"]
+        
+        channel: Channel = self.channels[channel_port]
+        channel.close_client(sender)
+        
+    def list(self, message):
+        username = message["sender"]
+        client: User = self.get_user(username)
+        
+        for channel in self.channels.values():
+            channel_msg = f"[Channel] {channel.name} {len(channel.chat_lobby)/{channel.max_users}/{len(channel.waiting_queue)}}."
+            message = {
+                "message_type": "basic",
+                "message": channel_msg
+            }
+            client.send_message(message)
+            
+        
+    def switch(self, message):
+        args = message["args"].split(" ")
+        new_channel = args[0]
+        raise NotImplementedError
+    
+    def send(self):
+        raise NotImplementedError
         
         
 def main():

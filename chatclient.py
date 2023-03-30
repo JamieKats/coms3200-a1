@@ -15,8 +15,16 @@ VALID_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 class Client:
     def __init__(self) -> None:
         # load channel info
-        self.server_port: int = int(sys.argv[1])
-        self.client_username: str = sys.argv[2]
+        if len(sys.argv) != 3:
+            exit(1)
+        
+        # exit if arguments are malformed
+        try:
+            self.server_port: int = int(sys.argv[1])
+            self.client_username: str = sys.argv[2]
+        except:
+            exit(1)
+            
         self.client_settings = {
             "port": self.server_port,
             "username": self.client_username
@@ -87,12 +95,20 @@ class Client:
         while True:
             user_input = input().strip()
             
-            # if user_input in VALID_COMMANDS:
-            #     self.handle_command(user_input)
-            #     continue
+            if user_input in VALID_COMMANDS:
+                message = {
+                    "message_type": "client_command",
+                    "message": user_input
+                }
+                self.send_message(message, socket)
+                continue
                 
             # input that isnt a command is a message
-            self.send_message(user_input, socket)
+            message = {
+                    "message_type": "basic",
+                    "message": user_input
+                }
+            self.send_message(message, socket)
             
                 
     
@@ -124,11 +140,7 @@ class Client:
     #     raise NotImplementedError
         
     def send_message(self, message, socket):
-        message_info = {
-            "message_type": "basic",
-            "message": message
-        }
-        encoded_message = json.dumps(message_info).encode()
+        encoded_message = json.dumps(message).encode()
         socket.send(encoded_message)
         
     def receiver_thread(self, socket: socket):
