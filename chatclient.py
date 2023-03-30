@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 
 SERVER_NAME = '127.0.0.1'
-SERVER_PORT = 12000
+SERVER_PORT = 1234
 
 MSG_BUFFER_SIZE = 4096
 
@@ -147,24 +147,19 @@ class Client:
             encoded_message = socket.recv(MSG_BUFFER_SIZE)
             
             message = json.loads(encoded_message.decode())
-            
+            # print(message)
             if message["message_type"] == "command":
-                self.handle_server_command(message["message"])
+                self.handle_server_command(message["command"])
+            elif message["message_type"] == "basic":
+                print(message["message"])
             
-            
-    def handle_server_command(self, server_message, socket):
+    def handle_server_command(self, command, socket=None):
         # server_exit_commands = ['/shutdown',]
-        command = server_message.split(":")[0]
-        arguments = server_message.split(":")[1]
-        message = server_message.split(":")[2]
+        # print(command)
         
         if command == "/shutdown":
             self.shutdown()
             return
-        # elif command == "/mute":
-        # # mute client and print mute message
-        #     self.mute(arguments)
-        #     print(message)
             
             
     def shutdown(self):
