@@ -43,8 +43,8 @@ QUESTIONS
     A
     - if someone leaves queue in middle ALL users in queue get queue position msg
 """
-from socket import *
-from threading import *
+import socket
+import threading
 import time
 import sys
 import json
@@ -55,18 +55,19 @@ import os
 import concurrent
 
 SERVER_NAME = 'server'
-SERVER_PORT = 14000
+SERVER_PORT = 12000
 MSG_BUFFER_SIZE = 4096
 
 CONFIG_COMMAND = 1
 
 # class Message()
 
-def get_time(self):
+def get_time():
         """
         Returns the time in 24 hour hh:mm:ss format
         """
         return datetime.now().strftime("%H:%M:%S")
+    
 
 class User:
     def __init__(self, name, port, connectiion_socket, addr) -> None:
@@ -76,28 +77,42 @@ class User:
         self.addr = addr
         self.time_last_message = datetime.now()
         
-    def send_message(self, message_type, message):
-        msg = json.dumps({
-            "message_type": message_type,
-            "message": message
-        })
-        self.connection_socket.send(msg.encode())
+    def send_message(self, message: dict):
+    # def send_message(self, message_type, message):
+        # msg = json.dumps({
+        #     "message_type": message_type,
+        #     "message": message
+        # })
+        # self.connection_socket.send(msg.encode())
+        encoded_msg = json.dumps(message).encode()
+        self.connection_socket.send(encoded_msg)
     
-    def receive_message(self):
-        pass
+    def shutdown(self):
+        # https://stackoverflow.com/questions/409783/socket-shutdown-vs-socket-close
+        "Sends shutdown message to client and closes socket"
+        shutdown_msg = {
+            "message_type": "command",
+            "message_contents": "/shutdown"
+        }
+        self.send_message(shutdown_msg)
+        self.connection_socket.shutdown(socket.SHUT_RDWR)
+        # self.connection_socket.close()
+        
 
 class ClientQueue(list):
     def __init__(self) -> None:
         super().__init__()
-        self.lock: Lock = Lock()
+        self.lock: threading.Lock = threading.Lock()
         
     def put(self, user: User):
         self.lock.acquire()
         self.append(user)
         self.lock.release()
         
-    def get(self):
+    def get(self) -> User:
         self.lock.acquire()
+        if len(self) == 0:
+            return None
         user: User = self.pop(0)
         self.send_waiting_queue_location_message()
         self.lock.release()
@@ -122,45 +137,54 @@ class ClientQueue(list):
         """
         Sends the location message for all clients in the queue
         """
-        # self.lock.acquire()
-            
         for i, user in enumerate(self):
             user_location = i + 1
             queue_loc_msg = f"[Server message ({get_time()})] You are in the \
                 queue and there are {user_location} user(s) ahead of you."
-            user.send_message(queue_loc_msg, user)        
-        
-        # self.lock.release()
-        
-        
+            message = {
+                'message_type': 'basic',
+                'message': queue_loc_msg
+            }
+            user.send_message(message, user)
 
     
 class Channel:
     def __init__(self, name, port, max_users) -> None:
-        self.name = name
-        self.port = port
-        self.max_users = max_users
-        self.chat_lobby = []
+        self.name: str = name
+        self.port: int = port
+        self.max_users: int = max_users
+        self.chat_lobby: list = []
         self.waiting_queue: ClientQueue = ClientQueue()
         
     def add_waiting_user(self, user: User):
         self.waiting_queue.put(user)
-        welcome_msg = f"[Server message ({get_time()})] Welcome to the {channel.name} channel, {client.name}."
-        user.send_message(welcome_msg)
+        welcome_msg = f"[Server message ({get_time()})] Welcome to the {self.name} channel, {user.name}."
+        message = {
+            'message_type': 'basic',
+            'message': welcome_msg
+        }
+        user.send_message(message)
         
     def move_user_to_lobby(self):
+        # if noone in wating queue return early
+        if len(self.waiting_queue) == 0:
+            return
+        
+        # get next user and add to chat lobby
         user = self.waiting_queue.get()
         self.chat_lobby.append(user)
         
-        # send queue location message to all people in queue
-        
-        
         # send <username> joined message to everyone in channel
         join_message = f"[Server message ({get_time()})] {user.name} has joined the channel."
-        channel.send_message(join_message)
+        message = {
+            "message_type": 'basic',
+            'message': join_message
+        }
+        self.send_message(message)
         
         # print user joined message to servers stdout
         server_msg = f"[Server message ({get_time()})] {user.name} has joined the {self.name} channel."
+        print(server_msg)
         
         
     def send_message(self, message, user=None):
@@ -178,19 +202,20 @@ class Channel:
         for user in self.chat_lobby:
             user.send_message(message)
             
-    def send_waiting_queue_location_message():
+    def shutdown(self):
         """
-        Sends the location message for all clients in the queue
+        Send shutdown message to all clients in queue and chat lobby, and 
+        close sockets
+
+        Returns:
+            _type_: _description_
         """
-        queue_loc_msg = f"[Server message ({get_time()})] You are in the queue \
-            and there are {} user(s) ahead of you."
-            
-        for user in self.user
+        for client in self.waiting_queue:
+            client.shutdown()
         
-
-
-
-
+        for client in self.chat_lobby:
+            client.shutdown()
+            
 
 class Server:
     def __init__(self) -> None:
@@ -205,17 +230,17 @@ class Server:
         self.load_config(config_path)
         
         # initialise channels
-        self.channels = self.create_channels()
+        self.channels: dict = self.create_channels()
         
         self.threads = []
         
         # set up listening socket
-        self.server_socket = socket(AF_INET, SOCK_STREAM)
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind(("localhost", SERVER_PORT))
         self.server_socket.listen()
     
         # set signal handler
-        signal.signal(signal.SIGINT, self.shut_down)
+        signal.signal(signal.SIGINT, self.shutdown)
         
         # queue for messages from server command/client messages to buisness logic thread
         self.incoming_queue = queue.Queue()
@@ -223,13 +248,36 @@ class Server:
         self.shutdown_server = False
         
         
+    # NOTE two shutdowns temporary, one for sigint one for shutdown command
+    def shutdown(self, signum=None, frame=None):
+        print("in shutdwon")
+        # close all client sockets in queues and channels
+        for channel in self.channels.values():
+            channel.shutdown()
         
-    # def shut_down(self):
-    #     # close all network connections
-    #     # for channel in self.channels:
-    #     #     for user in self.
-    #     # # close all threads
-    #     pass
+        # close bind socket
+        self.server_socket.close()
+        
+        # close command daemon thread
+        
+        
+        # exit process
+        print("at exit")
+        exit()
+        
+    # def shutdown(self, signum, frame):
+    #     # close all client sockets in queues and channels
+    #     for channel in self.channels.values():
+    #         channel.shutdown()
+        
+    #     # close bind socket
+    #     self.server_socket.close()
+        
+    #     # close command daemon thread
+        
+        
+    #     # exit process
+    #     exit()
         
     def load_config(self, config_path):
         try:
@@ -246,9 +294,7 @@ class Server:
                 }
           
     
-            
-            
-    def create_channels(self):
+    def create_channels(self) -> dict:
         """
         server needs to know
         
@@ -262,8 +308,8 @@ class Server:
             
             channels[channel_port] = Channel(
                 name=channel_info["name"],
-                port=channel_port,
-                max_users=channel_info["max_users"],
+                port=int(channel_port),
+                max_users=int(channel_info["max_users"]),
             )
         return channels
     
@@ -286,7 +332,7 @@ class Server:
         wait for next connection
         """
         # create daeomon thread to listen for server commands
-        server_command_thread = Thread(
+        server_command_thread = threading.Thread(
             target=self.server_command_thread, 
             args=(self.incoming_queue, ), 
             daemon=True)
@@ -294,10 +340,10 @@ class Server:
         
         # create thread to process channel queues, and execute logic when a 
         # client msg or server command is received
-        server_logic_thread = Thread(
+        server_logic_thread = threading.Thread(
             target=self.server_logic_thread,
             args=(self.incoming_queue, self.channels, ),
-            daemon=False)
+            daemon=True)
         self.threads.append(server_logic_thread)
         server_logic_thread.start()
         
@@ -316,7 +362,10 @@ class Server:
                 addr=addr)
             
             # create listener thread for new user
-            client_listener_thread = Thread(target=self.client_listener_thread, args=(self.channels, client,), daemon=True)
+            client_listener_thread = threading.Thread(
+                target=self.client_listener_thread, 
+                args=(self.channels, client,), 
+                daemon=True)
             self.threads.append(client_listener_thread)
             client_listener_thread.start()
             
@@ -329,6 +378,14 @@ class Server:
                 "message": server_command
             }
             incoming_queue.put(message)
+            
+            print(message["message"])
+            if message["message"] == "/shutdown":
+                self.shutdown_server = True
+                self.shutdown()
+                return
+            # print("in command thread")
+            # time.sleep(1)
     
             
     def client_listener_thread(self, channels: dict[Channel], client: User):
@@ -342,7 +399,13 @@ class Server:
         print(f"Client {client.name} started thread")
         
         while True:
-            client.connection_socket.recv(MSG_BUFFER_SIZE)
+            message = client.connection_socket.recv(MSG_BUFFER_SIZE)
+            
+            # return if empty message received indicating closed socket
+            if message == b'':
+                return
+            message = json.loads(message.decode())
+            print(message["message"])
             
     
     def server_logic_thread(self, incoming_message_queue, channels):
@@ -368,12 +431,12 @@ class Server:
             
             
     def process_channel_queues(self, channels):
-        for channel in channels:
+        for channel in channels.values():
             users_in_lobby = len(channel.chat_lobby)
             if users_in_lobby < channel.max_users:
                 users_to_add = min(
                     channel.max_users - users_in_lobby, 
-                    channel.waiting_queue.qsize())
+                    len(channel.waiting_queue))
                 
                 for i in range(0, users_to_add):
                     channel.move_user_to_lobby()

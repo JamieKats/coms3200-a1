@@ -1,12 +1,12 @@
-from socket import *
-from threading import *
+import socket
+import threading
 import sys
 import json
 from datetime import datetime
 import time
 
 SERVER_NAME = '127.0.0.1'
-SERVER_PORT = 14000
+SERVER_PORT = 12000
 
 MSG_BUFFER_SIZE = 4096
 
@@ -15,8 +15,8 @@ VALID_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 class Client:
     def __init__(self) -> None:
         # load channel info
-        self.server_port = int(sys.argv[1])
-        self.client_username = sys.argv[2]
+        self.server_port: int = int(sys.argv[1])
+        self.client_username: str = sys.argv[2]
         self.client_settings = {
             "port": self.server_port,
             "username": self.client_username
@@ -31,7 +31,7 @@ class Client:
 
         
     def connect_to_server(self):
-        self.client_socket = socket(AF_INET, SOCK_STREAM)
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect((SERVER_NAME, SERVER_PORT))
         except ConnectionRefusedError as e:
@@ -60,19 +60,21 @@ class Client:
         # receive welcome message
         welcome_msg = self.client_socket.recv(MSG_BUFFER_SIZE)
         welcome_msg = json.loads(welcome_msg.decode())
-        print(welcome_msg["msg"])
+        print(welcome_msg["message"])
         
         # spin up thread to handle incoming/outgoing message queues
         # input thread is daemon so don't need to put in threads list
-        input_thread = Thread(
+        input_thread = threading.Thread(
             target=self.input_thread, 
             args=(self.client_socket, ), 
             daemon=True)
+        input_thread.start()
         
-        receiver_thread = Thread(
+        receiver_thread = threading.Thread(
             target=self.receiver_thread, 
             args=(self.client_socket, ),
             daemon=False)
+        receiver_thread.start()
         
         receiver_thread.join()
         
@@ -84,8 +86,6 @@ class Client:
         """
         while True:
             user_input = input().strip()
-            if time.time() < self.time_of_mute + self.mute_length:
-                print
             
             # if user_input in VALID_COMMANDS:
             #     self.handle_command(user_input)
@@ -123,7 +123,7 @@ class Client:
     # def send(self):
     #     raise NotImplementedError
         
-    def send_message(message, socket):
+    def send_message(self, message, socket):
         message_info = {
             "message_type": "basic",
             "message": message
