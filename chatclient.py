@@ -10,6 +10,8 @@ SERVER_PORT = 1234
 
 MSG_BUFFER_SIZE = 4096
 
+TCP_SEND_BUFFER_LIMIT = 9
+
 VALID_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 
 class Client:
@@ -65,10 +67,14 @@ class Client:
         # send client username
         self.client_socket.send(json.dumps(self.client_settings).encode())
         
+        time.sleep(5) # block and allow server to send multiple messages at once
+        
         # receive welcome message
-        welcome_msg = self.client_socket.recv(MSG_BUFFER_SIZE)
-        welcome_msg = json.loads(welcome_msg.decode())
-        print(welcome_msg["message"])
+        # welcome_msg = self.client_socket.recv(MSG_BUFFER_SIZE)
+        # # welcome_msg = self.client_socket.recv(1)
+        # print(welcome_msg)
+        # welcome_msg = json.loads(welcome_msg.decode())
+        # print(welcome_msg["message"])
         
         # spin up thread to handle incoming/outgoing message queues
         # input thread is daemon so don't need to put in threads list
@@ -93,12 +99,15 @@ class Client:
         tells user invalid input was entered or sends the input to the socket 
         """
         while True:
-            user_input = input().strip()
+            user_input = input().strip().split(" ")
+            command = user_input[0]
+            args = user_input[1:]
             
-            if user_input in VALID_COMMANDS:
+            if command in VALID_COMMANDS:
                 message = {
                     "message_type": "client_command",
-                    "message": user_input
+                    "command": command,
+                    "args": args
                 }
                 self.send_message(message, socket)
                 continue
@@ -156,7 +165,17 @@ class Client:
             socket (_type_): _description_
         """
         while not self.exit_program:
+            # https://docs.python.org/3/howto/sockets.html
+            # NOTE recv msg len at start of message then call recv for the exact msg size
+            # messages smaller than the max buffer size will need to be received in multiple chunks and put together
+            
             encoded_message = socket.recv(MSG_BUFFER_SIZE)
+            message = encoded_message.decode()
+            print(message)
+            print()
+            msg_length = int(message[1:TCP_SEND_BUFFER_LIMIT + 1])
+            message = message[TCP_SEND_BUFFER_LIMIT + 1 : TCP_SEND_BUFFER_LIMIT + 1 + msg_length]
+            print(f"len: {msg_length}\nmsg: {message}\n msg_len: {len(message)}")
             
             message = json.loads(encoded_message.decode())
             # print(message)

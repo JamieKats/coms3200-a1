@@ -47,6 +47,15 @@ QUESTIONS
     - how do the qns foir part A work? are they changing everytime you start a new attempt on BB?
     are we also suppose to submit answers on BB or just the solutions we post as the PDF
     - what file types expected to be sent??
+    - if a command is provided with invalid commands, what to do?
+    - if a command is provided with extra commands, what to do?
+    - if client is starting up and they specify a channel that has someone with same username, what do we do?
+    If client swaps channels and someone already exists with the same username we dont move them, 
+    but nothing is specified for how we handle this case when the client is starting up for the first time
+    - max size of messages sent??
+    
+    NOTES FOR JAMIE
+    - in readme specify that channel is refering to the collection of chat lobby and queue
 """
 import socket
 import threading
@@ -62,6 +71,8 @@ import concurrent
 SERVER_NAME = 'server'
 SERVER_PORT = 1234
 MSG_BUFFER_SIZE = 4096
+
+MSG_LENGTH_LIMT = 9
 
 CONFIG_COMMAND = 1
 
@@ -89,6 +100,10 @@ class User:
         #     "message": message
         # })
         # self.connection_socket.send(msg.encode())
+        message = json.dumps(message)
+        msg_size = f"{len(message):0{MSG_LENGTH_LIMT}d}"
+        
+        message = f"{msg_size}{message}"
         encoded_msg = json.dumps(message).encode()
         self.connection_socket.send(encoded_msg)
 
@@ -154,15 +169,15 @@ class ClientQueue(list):
 
 
 class Channel:
-    def __init__(self, name, port, max_users) -> None:
+    def __init__(self, name, port, capacity) -> None:
         self.name: str = name
         self.port: int = port
-        self.max_users: int = max_users
-        self.chat_lobby: list = []
-        self.waiting_queue: ClientQueue = ClientQueue()
+        self.capacity: int = capacity
+        self.chat_room: list = []
+        self.client_queue: ClientQueue = ClientQueue()
         
-    def add_waiting_user(self, user: User):
-        self.waiting_queue.put(user)
+    def add_client_to_queue(self, user: User):
+        self.client_queue.put(user)
         
             
         welcome_msg = f"[Server message ({get_time()})] Welcome to the {self.name} channel, {user.name}."
@@ -176,11 +191,11 @@ class Channel:
         # print(len(self.waiting_queue))
         # print(len(self.chat_lobby))
         # print(self.max_users)
-        if len(self.waiting_queue) == 1 and len(self.chat_lobby) < self.max_users:
+        if len(self.client_queue) == 1 and len(self.chat_room) < self.capacity:
             return
         
         queue_loc_msg = f"[Server message ({get_time()})] You are in the " \
-            + f"waiting queue and there are {len(self.waiting_queue) - 1} " \
+            + f"waiting queue and there are {len(self.client_queue) - 1} " \
             + "user(s) ahead of you."
         message = {
             'message_type': 'basic',
@@ -189,14 +204,14 @@ class Channel:
         user.send_message(message)
 
         
-    def move_user_to_lobby(self):
+    def move_client_to_lobby(self):
         # if noone in wating queue return early
-        if len(self.waiting_queue) == 0:
+        if len(self.client_queue) == 0:
             return
         
         # get next user and add to chat lobby
-        user = self.waiting_queue.get()
-        self.chat_lobby.append(user)
+        user = self.client_queue.get()
+        self.chat_room.append(user)
         
         # send <username> joined message to everyone in channel
         join_message = f"[Server message ({get_time()})] {user.name} has joined the channel."
@@ -210,20 +225,39 @@ class Channel:
         server_msg = f"[Server message ({get_time()})] {user.name} has joined the {self.name} channel."
         print(server_msg)
         
+    
+    def remove_client_from_channel(self, username: str):
+        """
+        Removes the given client from the channel chat_room or queue. Asssumes
+        the client exists in the channel
+
+        Args:
+            username (_type_): _description_
+        """
+        client_in_chat_room = self.get_client_in_chat_room(username)
+        if client_in_chat_room is not None:
+            self.chat_room.remove(client_in_chat_room)
+            return
+            
+        client_in_queue = self.get_client_in_queue(username)
+        if client_in_queue is not None:
+            self.client_queue.remove_user(client_in_queue)
+            return
         
-    def send_message(self, message, username:str =None):
+        
+    def send_message(self, message, username:str = None):
         """
         Sends the message to all users in the channel is user=None,
         otherwise the message is sent to the user specified.
         """
         if username is not None:
             # send message to user
-            for chat_client in self.chat_lobby:
+            for chat_client in self.chat_room:
                 if username == chat_client.name:
                     chat_client.send_message(message)
             return
         
-        for chat_client in self.chat_lobby:
+        for chat_client in self.chat_room:
             chat_client.send_message(message)
             
     def shutdown(self):
@@ -234,13 +268,13 @@ class Channel:
         Returns:
             _type_: _description_
         """
-        for client in self.waiting_queue:
+        for client in self.client_queue:
             client.shutdown()
         
-        for client in self.chat_lobby:
+        for client in self.chat_room:
             client.shutdown()
             
-    def user_in_chat_lobby(self, username: str) -> bool:
+    def get_client_in_chat_room(self, username: str) -> User:
         """
         Checks if the provided user is in the chat lobby. Returns True if so, 
         False otherwise 
@@ -248,10 +282,45 @@ class Channel:
         Returns:
             bool: _description_
         """
-        for chat_user in self.chat_lobby:
+        for chat_user in self.chat_room:
             if chat_user.name == username:
-                return True
-        return False
+                return chat_user
+        return None
+    
+    def get_client_in_queue(self, username: str) -> User:
+        """
+        Checks if the given username exists in the queue, returns User if so, None otherwise
+
+        Args:
+            username (str): _description_
+
+        Returns:
+            User: _description_
+        """
+        for user in self.client_queue:
+            if user.name == username:
+                return user
+        return None
+        
+    def get_client_in_channel(self, username: str) -> User:
+        """
+        Returns the user if they exist in the chat_room or the queue. None otherwise
+
+        Args:
+            username (str): _description_
+
+        Returns:
+            User: _description_
+        """
+        client_in_chat_room = self.get_client_in_chat_room(username)
+        if client_in_chat_room is not None:
+            return client_in_chat_room
+        
+        client_in_queue = self.get_client_in_queue(username)
+        if client_in_queue is not None:
+            return client_in_queue
+        
+        return None
     
     def close_client(self, username: str):
         """
@@ -276,24 +345,35 @@ class Channel:
         # }
         # self.send_message(message, username)
         
+        
+        # if self.user_in_chat_lobby(username):
+        #     for user in self.chat_lobby():
+        #         if user.name == username:
+        #             user.shutdown()
+        #             message = {
+        #                 "message_type": "basic",
+        #                 "message": client_quit_msg
+        #             }
+        #             self.send_message(message)
+        # else:
+        #     # kill client sockets
+        #     for user in self.waiting_queue():
+        #         if user.name == username:
+        #             self.waiting_queue.remove_user(user)
+        #             user.shutdown()
+        
+        client: User = self.get_client_in_channel(username)
+        if client is None:
+            return
+        
         client_quit_msg = f"[Server message ({get_time()})] {username} has left the channel."
         print(client_quit_msg)
         
-        if self.user_in_chat_lobby(username):
-            for user in self.chat_lobby():
-                if user.name == username:
-                    user.shutdown()
-                    message = {
-                        "message_type": "basic",
-                        "message": client_quit_msg
-                    }
-                    self.send_message(message)
-        else:
-            # kill client sockets
-            for user in self.waiting_queue():
-                if user.name == username:
-                    self.waiting_queue.remove_user(user)
-                    user.shutdown()
+        # remove client from channel and close connection
+        self.remove_client_from_channel(username)
+        
+        
+        client.shutdown()
                     
         
 class Server:
@@ -318,6 +398,7 @@ class Server:
         
         # set up listening socket
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind(("localhost", SERVER_PORT))
         self.server_socket.listen()
     
@@ -340,6 +421,7 @@ class Server:
             channel.shutdown()
         
         # close bind socket
+        print("above server_socket shutdown in server.shutdown()")
         self.server_socket.shutdown(socket.SHUT_RDWR)
         self.server_socket.close()
         
@@ -399,7 +481,7 @@ class Server:
             channels[channel_port] = Channel(
                 name=channel_info["name"],
                 port=int(channel_port),
-                max_users=int(channel_info["max_users"]),
+                capacity=int(channel_info["max_users"]),
             )
         return channels
     
@@ -515,9 +597,20 @@ class Server:
     
             
     def client_listener_thread(self, channels: dict[Channel], client: User):
-        # add client to channel queue
+        # if client already exists with same name in channel close client
         channel: Channel = channels[int(client.port)]
-        channel.add_waiting_user(client)
+        if channel.get_client_in_channel(client.name) is not None:
+            message = {
+                'message_type': 'basic',
+                'message': f"[Server message ({get_time()})] Cannot connect to the {channel.name} channel."
+            }
+            client.send_message(message)
+            client.shutdown()
+            return
+            
+        
+        # add client to channel queue
+        channel.add_client_to_queue(client)
         
         # send client welcome message
         # welcome_msg = f"[Server message ({self.get_time()})] Welcome to the {channel.name} channel, {client.name}."
@@ -566,15 +659,15 @@ class Server:
         for channel in channels.values():
             # print(f"Size of queue = {len(channel.waiting_queue)}")
             # print(f"Num of people in lobby = {len(channel.chat_lobby)}/{channel.max_users}")
-            users_in_lobby = len(channel.chat_lobby)
-            if users_in_lobby < channel.max_users:
+            users_in_lobby = len(channel.chat_room)
+            if users_in_lobby < channel.capacity:
                 # print("IN PROCESS CHANNEL QUEUES")
                 users_to_add = min(
-                    channel.max_users - users_in_lobby, 
-                    len(channel.waiting_queue))
+                    channel.capacity - users_in_lobby, 
+                    len(channel.client_queue))
                 
                 for i in range(0, users_to_add):
-                    channel.move_user_to_lobby()
+                    channel.move_client_to_lobby()
                     
             
         
@@ -646,18 +739,21 @@ class Server:
                     return client
         return None
     
-    def handle_client_commands(self, message):
+    def handle_client_command(self, message):
+        # print()
+        # print(message)
+        # print()
         command = message["command"]
         if command == '/whisper':
             self.whisper(message)
         elif command == '/quit':
-            self.quit()
+            self.quit(message)
         elif command == '/list':
-            self.list()
+            self.list(message)
         elif command == '/switch':
-            self.switch()
+            self.switch(message)
         elif command == '/send':
-            self.send()
+            self.send(message)
                 
                 
     def whisper(self, received_message):
@@ -666,7 +762,7 @@ class Server:
         whisper_message = args[1]
         
         target_channel: Channel = self.channels[int(message["port"])]
-        if target_channel.user_in_chat_lobby(whisper_target):
+        if target_channel.get_client_in_chat_room(whisper_target):
             # whisper target not in chat lobby
             no_user_msg = f"[Server message ({get_time()})] {whisper_target} is not here." 
             message = {
@@ -708,11 +804,52 @@ class Server:
         
     def switch(self, message):
         args = message["args"].split(" ")
-        new_channel = args[0]
-        raise NotImplementedError
+        new_channel_name = args[0]
+        new_channel: Channel = self.get_channel(new_channel_name)
+        sender_username = message["sender"]
+        sender: User = self.get_user(sender_username)
+        
+        # if channel doesnt exist tell user and return early
+        if new_channel is None:
+            message = {
+                "message_type": 'basic',
+                "message": f"[Server message ({get_time()})] {new_channel_name} does not exist."
+            }
+            sender.send_message(message)
+            return
+        
+        # If user with same name already exists in new channel, send error to 
+        # sender and return early
+        existing_client = new_channel.get_client_in_channel(sender_username)
+        if existing_client is not None:
+            message = {
+                "message_type": "basic",
+                "message": f"[Server message ({get_time()})] Cannot switch to the {new_channel_name} channel."
+            }
+            sender.send_message(message)
+            return
+        
+        # remove sender from existing channel and put in new channel queue
+        current_channel_port: int = int(message["port"])
+        current_channel: Channel = self.channels[current_channel_port]
+        current_channel.remove_client_from_channel(sender_username)
+        
+        new_channel.add_client_to_queue(sender)
     
-    def send(self):
+    def send(self, message):
         raise NotImplementedError
+        
+    def get_channel(self, channel_name: str):
+        """
+        Returns the channel if it exists, None otherwise
+
+        Args:
+            channel_name (str): _description_
+        """
+        for channel in self.channels.values():
+            if channel.name == channel_name:
+                return channel
+        return None
         
         
 def main():
