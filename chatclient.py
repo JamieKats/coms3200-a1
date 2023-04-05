@@ -169,16 +169,10 @@ class Client:
             # NOTE recv msg len at start of message then call recv for the exact msg size
             # messages smaller than the max buffer size will need to be received in multiple chunks and put together
             
-            encoded_message = socket.recv(MSG_BUFFER_SIZE)
-            message = encoded_message.decode()
-            print(message)
-            print()
-            msg_length = int(message[1:TCP_SEND_BUFFER_LIMIT + 1])
-            message = message[TCP_SEND_BUFFER_LIMIT + 1 : TCP_SEND_BUFFER_LIMIT + 1 + msg_length]
-            print(f"len: {msg_length}\nmsg: {message}\n msg_len: {len(message)}")
+            msg_length = socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
+            encoded_message = socket.recv(int(msg_length))
             
             message = json.loads(encoded_message.decode())
-            # print(message)
             if message["message_type"] == "command":
                 self.handle_server_command(message["command"])
             elif message["message_type"] == "basic":

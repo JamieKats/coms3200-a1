@@ -55,6 +55,8 @@ QUESTIONS
     - max size of messages sent??
     
     NOTES FOR JAMIE
+    - when client exits early (crashes) server crashes because it tries to close pipes for 
+    the client that has already died
     - in readme specify that channel is refering to the collection of chat lobby and queue
 """
 import socket
@@ -93,19 +95,21 @@ class User:
         self.addr = addr
         self.time_last_message = datetime.now()
         
-    def send_message(self, message: dict):
-    # def send_message(self, message_type, message):
-        # msg = json.dumps({
-        #     "message_type": message_type,
-        #     "message": message
-        # })
-        # self.connection_socket.send(msg.encode())
-        message = json.dumps(message)
-        msg_size = f"{len(message):0{MSG_LENGTH_LIMT}d}"
         
-        message = f"{msg_size}{message}"
-        encoded_msg = json.dumps(message).encode()
-        self.connection_socket.send(encoded_msg)
+    def send_message(self, message: dict):
+        """
+        Send encoded message length then send the message after
+
+        Args:
+            message (dict): _description_
+        """
+        encoded_message = json.dumps(message).encode()
+        encoded_message_len = len(encoded_message)
+        encoded_message_len = f"{encoded_message_len:0{MSG_LENGTH_LIMT}d}".encode()
+        self.connection_socket.send(encoded_message_len)
+        
+        self.connection_socket.send(encoded_message)
+
 
     def shutdown(self):
         # https://stackoverflow.com/questions/409783/socket-shutdown-vs-socket-close
@@ -115,9 +119,13 @@ class User:
             "command": "/shutdown"
         }
         self.send_message(shutdown_msg)
-        self.connection_socket.shutdown(socket.SHUT_RDWR)
-        self.connection_socket.close()
-        
+        try:
+            self.connection_socket.shutdown(socket.SHUT_RDWR)
+            self.connection_socket.close()
+        except OSError as e:
+            # NOTE remove before submitting
+            print(f"OSError: Client connection may have already been closed: {e}")
+
 
 class ClientQueue(list):
     def __init__(self) -> None:
