@@ -78,6 +78,9 @@ MSG_LENGTH_LIMT = 9
 
 CONFIG_COMMAND = 1
 
+VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
+
+
 # class Message()
 
 def get_time():
@@ -119,6 +122,30 @@ class User:
             "command": "/shutdown"
         }
         self.send_message(shutdown_msg)
+        try:
+            self.connection_socket.shutdown(socket.SHUT_RDWR)
+            self.connection_socket.close()
+        except OSError as e:
+            # NOTE remove before submitting
+            print(f"OSError: Client connection may have already been closed: {e}")
+            
+            
+    def switch_channel(self, args):
+        """
+        Sends msg to client to reconnect on new channel and closes current connection
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        reconnect_msg = {
+            "message_type": "command",
+            "command": "/switch",
+            "args": args
+        }
+        self.send_message(reconnect_msg)
         try:
             self.connection_socket.shutdown(socket.SHUT_RDWR)
             self.connection_socket.close()
@@ -634,13 +661,25 @@ class Server:
         channel.add_client_to_queue(client)
         
         while True:
+            # try:
             message = client.connection_socket.recv(MSG_BUFFER_SIZE)
+            # except ConnectionResetError as e:
             
             # return if empty message received indicating closed socket
             if message == b'':
                 return
             
             message = json.loads(message.decode())
+            
+            # check if message first word is valid command
+            first_word = message["message"].split(" ")[0]
+            if first_word in VALID_CLIENT_COMMANDS:
+                message = {
+                    "message_type": "client_command",
+                    "command": first_word,
+                    "args": message["message"].split(" ")[1:]
+                }
+            
             # add client username, and channel port to msg metadata
             message["sender"] = client.name
             message["channel"] = channel
@@ -821,8 +860,7 @@ class Server:
         whisper_target = args[0]
         whisper_message = args[1]
         
-        target_channel: Channel = self.channels[int(received_message["port"])]
-        print(f"chat user in room = {target_channel.get_client_in_chat_room(whisper_target)}")
+        target_channel: Channel = received_message["channel"]
         if target_channel.get_client_in_chat_room(whisper_target) is None:
             # whisper target not in chat lobby
             no_user_msg = f"[Server message ({get_time()})] {whisper_target} is not here." 
@@ -895,11 +933,12 @@ class Server:
             return
         
         # remove sender from existing channel and put in new channel queue
-        current_channel_port: int = int(message["port"])
-        current_channel: Channel = self.channels[current_channel_port]
+        current_channel: Channel = message["channel"]
+        # current_channel_port: int = current_channel.port
         current_channel.remove_client_from_channel(sender_username)
-        
         new_channel.add_client_to_queue(sender)
+        
+        # send client msg to close socket and reconnect on new port then close client connec
     
     def send(self, message):
         raise NotImplementedError

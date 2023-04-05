@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 import json
+import queue
 from datetime import datetime
 import time
 
@@ -36,7 +37,18 @@ class Client:
         self.time_of_mute = 0 # time mute was applied
         self.mute_length = 0 # seconds of mute
         
-        self.exit_program = False
+        self.shutdown_client = False
+        
+        # input thread
+        # spin up thread to handle incoming/outgoing message queues
+        # input thread is daemon so don't need to put in threads list
+        input_thread = threading.Thread(
+            target=self.input_thread, 
+            # args=(, ), 
+            daemon=True)
+        input_thread.start()
+        
+        self.shutdown_queue = queue.Queue()
 
         
     def connect_to_server(self):
@@ -61,61 +73,40 @@ class Client:
                 - switch mute flag (/mute))
             can return when done, needs to be joined with main thread
         """
-        self.connect_to_server()
+        while self.shutdown_client == False:
+            self.connect_to_server()
+            
+            # send client username
+            self.client_socket.send(json.dumps(self.client_settings).encode())
+            
+            receiver_thread = threading.Thread(
+                target=self.receiver_thread,
+                # args=(self.client_socket, ),
+                daemon=True)
+            receiver_thread.start()
+            receiver_thread.join()
+            
+            time.sleep(1)
         
-        # send client username
-        self.client_socket.send(json.dumps(self.client_settings).encode())
+        self.shutdown_queue.get(block=True)
+        self.shutdown()
         
-        
-        # receive welcome message
-        # welcome_msg = self.client_socket.recv(MSG_BUFFER_SIZE)
-        # # welcome_msg = self.client_socket.recv(1)
-        # print(welcome_msg)
-        # welcome_msg = json.loads(welcome_msg.decode())
-        # print(welcome_msg["message"])
-        
-        # spin up thread to handle incoming/outgoing message queues
-        # input thread is daemon so don't need to put in threads list
-        input_thread = threading.Thread(
-            target=self.input_thread, 
-            args=(self.client_socket, ), 
-            daemon=True)
-        input_thread.start()
-        
-        receiver_thread = threading.Thread(
-            target=self.receiver_thread, 
-            args=(self.client_socket, ),
-            daemon=False)
-        receiver_thread.start()
-        
-        receiver_thread.join()
+        # receiver_thread.join()
         
         
-    def input_thread(self, socket):
+    def input_thread(self):
         """
         Takes input from user, checks command (valid or invalid), then either 
         tells user invalid input was entered or sends the input to the socket 
         """
         while True:
-            user_input = input().strip().split(" ")
-            command = user_input[0]
-            args = user_input[1:]
-            
-            if command in VALID_COMMANDS:
-                message = {
-                    "message_type": "client_command",
-                    "command": command,
-                    "args": args
-                }
-                self.send_message(message, socket)
-                continue
-                
+            user_input = input().strip()
             # input that isnt a command is a message
             message = {
                     "message_type": "basic",
                     "message": user_input
                 }
-            self.send_message(message, socket)
+            self.send_message(message)
             
                 
     
@@ -146,11 +137,12 @@ class Client:
     # def send(self):
     #     raise NotImplementedError
         
-    def send_message(self, message, socket):
+    def send_message(self, message):
         encoded_message = json.dumps(message).encode()
-        socket.send(encoded_message)
+        self.client_socket.send(encoded_message)
         
-    def receiver_thread(self, socket: socket):
+        
+    def receiver_thread(self):
         """Listens for incoming messages and handles them. If its just a message
         print to screen, if its a command process it.
 
@@ -162,38 +154,58 @@ class Client:
         Args:
             socket (_type_): _description_
         """
-        while not self.exit_program:
+        while True:
             # https://docs.python.org/3/howto/sockets.html
             # NOTE recv msg len at start of message then call recv for the exact msg size
             # messages smaller than the max buffer size will need to be received in multiple chunks and put together
             
-            msg_length = socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
-            encoded_message = socket.recv(int(msg_length))
+            try:
+                msg_length = self.client_socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
+                encoded_message = self.client_socket.recv(int(msg_length))
+            except OSError:
+                return
             
             message = json.loads(encoded_message.decode())
             if message["message_type"] == "command":
-                self.handle_server_command(message["command"])
+                self.handle_server_command(message)
+                
             elif message["message_type"] == "basic":
                 print(message["message"])
             
-    def handle_server_command(self, command, socket=None):
-        # server_exit_commands = ['/shutdown',]
-        # print(command)
-        
+            
+    def handle_server_command(self, message):
+        command = message["command"]
         if command == "/shutdown":
             self.shutdown()
+            return
+        elif command == "/switch":
+            args = message["args"]
+            self.switch(args)
             return
             
             
     def shutdown(self):
-        self.exit_program = True
+        self.close_socket()
+        self.shutdown_queue.put(1)
+        self.shutdown_client = True
     
     
-    # def mute(self, seconds: str, client_socket: socket):
-    #     self.time_of_mute = time.time()
-    #     self.mute_length = float(seconds)
-        # message = ""
-        # self.send_message(, client_socket)
+    def switch(self, args):
+        """
+        When switching clients channel set the server_port to be the new channel
+        and close the current socket
+
+        Args:
+            args (_type_): _description_
+        """
+        new_channel_port = int(args[0])
+        self.server_port = new_channel_port
+        self.close_socket()
+
+        
+    def close_socket(self):
+        # self.client_socket.shutdown(socket.SHUT_RDWR)
+        self.client_socket.close()
     
             
         
