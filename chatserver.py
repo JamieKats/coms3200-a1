@@ -290,7 +290,9 @@ class Channel:
         Returns:
             bool: _description_
         """
+        # print(len(self.chat_room))
         for chat_user in self.chat_room:
+            # print(chat_user.name)
             if chat_user.name == username:
                 return chat_user
         return None
@@ -770,20 +772,23 @@ class Server:
         whisper_message = args[1]
         
         target_channel: Channel = self.channels[int(received_message["port"])]
-        if target_channel.get_client_in_chat_room(whisper_target):
+        print(f"chat user in room = {target_channel.get_client_in_chat_room(whisper_target)}")
+        if target_channel.get_client_in_chat_room(whisper_target) is None:
             # whisper target not in chat lobby
             no_user_msg = f"[Server message ({get_time()})] {whisper_target} is not here." 
             message = {
                 "message_type": "basic",
-                "message": no_user_msg
+                "message": no_user_msg,
+                "receiver": received_message["sender"]
             }
         else:
             formated_whisper = f"[{received_message['sender']} whispers to you: {get_time()}] {whisper_message}"
             message = {
                 "message_type": "basic",
-                "message": formated_whisper
+                "message": formated_whisper,
+                "receiver": whisper_target
             }
-        target_channel.send_message(message, received_message["sender"])
+        target_channel.send_message(message, message["receiver"])
         
         # print server whisper message
         server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"
