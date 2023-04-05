@@ -6,7 +6,6 @@ from datetime import datetime
 import time
 
 SERVER_NAME = '127.0.0.1'
-SERVER_PORT = 1234
 
 MSG_BUFFER_SIZE = 4096
 
@@ -28,7 +27,7 @@ class Client:
             exit(1)
             
         self.client_settings = {
-            "port": self.server_port,
+            # "port": self.server_port,
             "username": self.client_username
         }
         
@@ -43,7 +42,7 @@ class Client:
     def connect_to_server(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.client_socket.connect((SERVER_NAME, SERVER_PORT))
+            self.client_socket.connect((SERVER_NAME, self.server_port))
         except ConnectionRefusedError as e:
             print(f"REMOVE WHEN DONE: server socket connection refused: {e}...")
             exit(1)

@@ -70,7 +70,7 @@ import signal
 import os
 import concurrent
 
-SERVER_NAME = 'server'
+SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 1234
 MSG_BUFFER_SIZE = 4096
 
@@ -177,12 +177,13 @@ class ClientQueue(list):
 
 
 class Channel:
-    def __init__(self, name, port, capacity) -> None:
+    def __init__(self, name, port, capacity, socket) -> None:
         self.name: str = name
         self.port: int = port
         self.capacity: int = capacity
         self.chat_room: list = []
         self.client_queue: ClientQueue = ClientQueue()
+        self.socket = socket
         
     def add_client_to_queue(self, user: User):
         self.client_queue.put(user)
@@ -343,6 +344,17 @@ class Channel:
         
         return None
     
+    def client_in_channel(self, username: str) -> bool:
+        client_in_chat_room = self.get_client_in_chat_room(username)
+        if client_in_chat_room is not None:
+            return True
+        
+        client_in_queue = self.get_client_in_queue(username)
+        if client_in_queue is not None:
+            return True
+        
+        return False
+    
     def close_client(self, username: str):
         """
         Sends the client a shutdown command before clsoing threads and 
@@ -476,11 +488,12 @@ class Server:
             config_options = line.split(" ")
             port = int(config_options[2])
             name = config_options[1]
-            max_users = config_options[3]
+            capacity = config_options[3]
             
-            self.channel_configs[port] = {
-                "name": name,
-                "max_users": max_users
+            self.channel_configs[name] = {
+                # "name": name,
+                "port": port,
+                "capacity": capacity
                 }
           
     
@@ -494,13 +507,22 @@ class Server:
             - channel capacity
         """
         channels = {}
-        for channel_port, channel_info in self.channel_configs.items():
+        for channel_name, channel_info in self.channel_configs.items():
+            port = int(channel_info["port"])
+            capacity = int(channel_info["capacity"])
             
-            channels[channel_port] = Channel(
-                name=channel_info["name"],
-                port=int(channel_port),
-                capacity=int(channel_info["max_users"]),
+            self.channel_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.channel_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.channel_socket.bind((SERVER_HOST, port))
+            self.channel_socket.listen()
+            
+            channels[channel_name] = Channel(
+                name=channel_name,
+                port=port,
+                capacity=capacity,
+                socket=self.channel_socket
             )
+            
         return channels
     
     # def create_channel_queues(self, channels):
@@ -537,61 +559,45 @@ class Server:
         self.threads.append(server_logic_thread)
         server_logic_thread.start()
         
-        # with concurrent.futures.ThreadPoolExecutor() as exetuor:
+        # # start ser
+        # server_listen_thread = threading.Thread(
+        #     target=self.server_listen_thread,
+        #     # args=,
+        #     daemon=True
+        # )
+        # server_listen_thread.start()
         
-        server_listen_thread = threading.Thread(
-            target=self.server_listen_thread,
-            # args=,
-            daemon=True
-        )
-        server_listen_thread.start()
+        # start up server threads to listen to channel sockets for incoming 
+        # connections
+        self.start_channel_listeners()
         
         # when a msg sent to shutdown queue, start server shutdown process
         self.shutdown_queue.get(block=True)
         self.shutdown()
         
         
-        # while True:
-        #     # accept new connection and create User
-        #     connection_socket, addr = self.server_socket.accept()
-        #     client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
-        #     client_settings = json.loads(client_settings)
-        #     client = User(
-        #         name=client_settings["username"],
-        #         port=client_settings["port"],
-        #         connectiion_socket=connection_socket,
-        #         addr=addr)
+    # def server_listen_thread(self):
+    #     while True:
+    #         # If OSError thrown because of closed socket return
+    #         try:
+    #             connection_socket, addr = self.server_socket.accept()
+    #         except OSError:
+    #             return
             
-        #     # create listener thread for new user
-        #     client_listener_thread = threading.Thread(
-        #         target=self.client_listener_thread, 
-        #         args=(self.channels, client,), 
-        #         daemon=True)
-        #     self.threads.append(client_listener_thread)
-        #     client_listener_thread.start()
+    #         client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
+    #         client_settings = json.loads(client_settings)
+    #         client = User(
+    #             name=client_settings["username"],
+    #             connectiion_socket=connection_socket,
+    #             addr=addr)
             
-    def server_listen_thread(self):
-        while True:
-            # If OSError thrown because of closed socket return
-            try:
-                connection_socket, addr = self.server_socket.accept()
-            except OSError:
-                return
-            
-            client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
-            client_settings = json.loads(client_settings)
-            client = User(
-                name=client_settings["username"],
-                connectiion_socket=connection_socket,
-                addr=addr)
-            
-            # create listener thread for new user
-            client_listener_thread = threading.Thread(
-                target=self.client_listener_thread, 
-                args=(self.channels, client, int(client_settings["port"])), 
-                daemon=True)
-            self.threads.append(client_listener_thread)
-            client_listener_thread.start()
+    #         # create listener thread for new user
+    #         client_listener_thread = threading.Thread(
+    #             target=self.client_listener_thread, 
+    #             args=(self.channels, client, int(client_settings["port"])), 
+    #             daemon=True)
+    #         self.threads.append(client_listener_thread)
+    #         client_listener_thread.start()
         
             
             
@@ -612,11 +618,10 @@ class Server:
             # print("in command thread")
             # time.sleep(1)
     
-            
-    def client_listener_thread(self, channels: dict, client: User, channel_port: int):
+
+    def client_listener_thread(self, client: User, channel: Channel):
         # if client already exists with same name in channel close client
-        channel: Channel = channels[channel_port]
-        if channel.get_client_in_channel(client.name) is not None:
+        if channel.client_in_channel(client.name):
             message = {
                 'message_type': 'basic',
                 'message': f"[Server message ({get_time()})] Cannot connect to the {channel.name} channel."
@@ -634,9 +639,11 @@ class Server:
             # return if empty message received indicating closed socket
             if message == b'':
                 return
+            
             message = json.loads(message.decode())
             # add client username, and channel port to msg metadata
             message["sender"] = client.name
+            message["channel"] = channel
             # TODO need to attach port user is from to the message somehow
             # message["port"] = channel.port
             
@@ -665,6 +672,41 @@ class Server:
             self.process_server_commands(incoming_message_queue, channels)
        
             time.sleep(0.01)
+
+
+    def start_channel_listeners(self):
+        for channel in self.channels.values():
+            channel_listener_thread = threading.Thread(
+                target=self.channel_listen_thread,
+                args=(channel, ),
+                daemon=True
+            )
+            channel_listener_thread.start()
+
+
+    def channel_listen_thread(self, channel: Channel):
+        while True:
+            # If OSError thrown because of closed socket return
+            try:
+                connection_socket, addr = channel.socket.accept()
+            except OSError:
+                return
+            
+            # receive first message from client with clients username
+            client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
+            client_settings = json.loads(client_settings)
+            client = User(
+                name=client_settings["username"],
+                connectiion_socket=connection_socket,
+                addr=addr)
+            
+            # create listener thread for new user
+            client_listener_thread = threading.Thread(
+                target=self.client_listener_thread,
+                args=(client, channel),
+                daemon=True)
+            self.threads.append(client_listener_thread)
+            client_listener_thread.start()
             
             
     def process_channel_queues(self, channels):
@@ -697,9 +739,10 @@ class Server:
         except queue.Empty as e:
             return
         
-        client = message["sender"]
-        channel: Channel = self.get_clients_channel(client)
-        message["port"] = channel.port
+        client_name = message["sender"]
+        channel = message["channel"]
+        # channel: Channel = self.get_clients_channel(client)
+        # message["channel"] = channel
         # channel = channels[message["port"]]
         
         # print(f"channel from message: {message['port']}")
@@ -717,11 +760,11 @@ class Server:
         # TODO befor this 'if' need to check if client is muted or not
         if message["message_type"] == "basic":
             # if msg from user in a queue return early
-            if channel.get_client_in_queue(message["sender"]) is not None:
+            if channel.get_client_in_queue(client_name) is not None:
                 return
             
             # convert client msg to server formatted msg
-            formatted_msg = f"[{message['sender']} ({get_time()})] {message['message']}"
+            formatted_msg = f"[{client_name} ({get_time()})] {message['message']}"
             print(formatted_msg)
             server_msg = {
                 'message_type': 'basic',
@@ -729,7 +772,7 @@ class Server:
             }
             
             for user in channel.chat_room:
-                if user.name != message["sender"]:
+                if user.name != client_name:
                     user.send_message(server_msg)
     
     
@@ -803,11 +846,13 @@ class Server:
             
     
     def quit(self, message):
-        sender = message["sender"]
-        channel_port = message["port"]
+        sender: str = message["sender"]
+        # channel_name: str = message["channel"].name
         
-        channel: Channel = self.channels[channel_port]
+        # channel: Channel = self.channels[channel_name]
+        channel: Channel = message["channel"]
         channel.close_client(sender)
+        
         
     def list(self, message):
         username = message["sender"]
