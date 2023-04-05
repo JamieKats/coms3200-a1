@@ -48,7 +48,7 @@ QUESTIONS
     are we also suppose to submit answers on BB or just the solutions we post as the PDF
     - what file types expected to be sent??
     - if a command is provided with invalid commands, what to do?
-    - if a command is provided with extra commands, what to do?
+    - if a command is provided with more or less commands than expected, what to do?
     - if client is starting up and they specify a channel that has someone with same username, what do we do?
     If client swaps channels and someone already exists with the same username we dont move them, 
     but nothing is specified for how we handle this case when the client is starting up for the first time
@@ -604,7 +604,7 @@ class Server:
             # time.sleep(1)
     
             
-    def client_listener_thread(self, channels: dict[Channel], client: User):
+    def client_listener_thread(self, channels: dict, client: User):
         # if client already exists with same name in channel close client
         channel: Channel = channels[int(client.port)]
         if channel.get_client_in_channel(client.name) is not None:
@@ -765,11 +765,11 @@ class Server:
                 
                 
     def whisper(self, received_message):
-        args = received_message["args"].split(" ")
+        args = received_message['args']
         whisper_target = args[0]
         whisper_message = args[1]
         
-        target_channel: Channel = self.channels[int(message["port"])]
+        target_channel: Channel = self.channels[int(received_message["port"])]
         if target_channel.get_client_in_chat_room(whisper_target):
             # whisper target not in chat lobby
             no_user_msg = f"[Server message ({get_time()})] {whisper_target} is not here." 
@@ -783,7 +783,7 @@ class Server:
                 "message_type": "basic",
                 "message": formated_whisper
             }
-        target_channel.send_message(message, message["sender"])
+        target_channel.send_message(message, received_message["sender"])
         
         # print server whisper message
         server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"

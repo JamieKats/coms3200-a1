@@ -67,7 +67,6 @@ class Client:
         # send client username
         self.client_socket.send(json.dumps(self.client_settings).encode())
         
-        time.sleep(5) # block and allow server to send multiple messages at once
         
         # receive welcome message
         # welcome_msg = self.client_socket.recv(MSG_BUFFER_SIZE)
