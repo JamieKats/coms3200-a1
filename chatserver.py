@@ -88,9 +88,9 @@ def get_time():
     
 
 class User:
-    def __init__(self, name, port, connectiion_socket, addr) -> None:
+    def __init__(self, name, connectiion_socket, addr) -> None:
         self.name: str = name
-        self.port: int = port
+        # self.port: int = port
         self.connection_socket: socket = connectiion_socket
         self.addr = addr
         self.time_last_message = datetime.now()
@@ -243,11 +243,22 @@ class Channel:
             username (_type_): _description_
         """
         client_in_chat_room = self.get_client_in_chat_room(username)
+        client_in_queue = self.get_client_in_queue(username)
+
         if client_in_chat_room is not None:
+            # print("before removing client from channel")
+            # for user in self.chat_room:
+            #     print(user.name)
+            # print()
+                
             self.chat_room.remove(client_in_chat_room)
+            
+            # print("after removing client from channel")
+            # for user in self.chat_room:
+            #     print(user.name)
+            # print()
             return
             
-        client_in_queue = self.get_client_in_queue(username)
         if client_in_queue is not None:
             self.client_queue.remove_user(client_in_queue)
             return
@@ -442,19 +453,16 @@ class Server:
         time.sleep(1) # NOTE tmp sleep aded before exit to allow daemon threads to throw exceptions to fix
         exit()
         
-    # def shutdown(self, signum, frame):
-    #     # close all client sockets in queues and channels
-    #     for channel in self.channels.values():
-    #         channel.shutdown()
-        
-    #     # close bind socket
-    #     self.server_socket.close()
-        
-    #     # close command daemon thread
-        
-        
-    #     # exit process
-    #     exit()
+    def get_clients_channel(self, username: str):
+        """
+        Returns the channel the client is apart of. None otherwise
+
+        Args:
+            username (str): _description_
+        """
+        for channel in self.channels.values():
+            if channel.get_client_in_channel(username) is not None:
+                return channel
         
     def load_config(self, config_path):
         try:
@@ -574,14 +582,13 @@ class Server:
             client_settings = json.loads(client_settings)
             client = User(
                 name=client_settings["username"],
-                port=client_settings["port"],
                 connectiion_socket=connection_socket,
                 addr=addr)
             
             # create listener thread for new user
             client_listener_thread = threading.Thread(
                 target=self.client_listener_thread, 
-                args=(self.channels, client,), 
+                args=(self.channels, client, int(client_settings["port"])), 
                 daemon=True)
             self.threads.append(client_listener_thread)
             client_listener_thread.start()
@@ -606,9 +613,9 @@ class Server:
             # time.sleep(1)
     
             
-    def client_listener_thread(self, channels: dict, client: User):
+    def client_listener_thread(self, channels: dict, client: User, channel_port: int):
         # if client already exists with same name in channel close client
-        channel: Channel = channels[int(client.port)]
+        channel: Channel = channels[channel_port]
         if channel.get_client_in_channel(client.name) is not None:
             message = {
                 'message_type': 'basic',
@@ -618,14 +625,8 @@ class Server:
             client.shutdown()
             return
             
-        
         # add client to channel queue
         channel.add_client_to_queue(client)
-        
-        # send client welcome message
-        # welcome_msg = f"[Server message ({self.get_time()})] Welcome to the {channel.name} channel, {client.name}."
-        # client.send_message("basic", welcome_msg)
-        # print(f"Client {client.name} started thread")
         
         while True:
             message = client.connection_socket.recv(MSG_BUFFER_SIZE)
@@ -636,7 +637,8 @@ class Server:
             message = json.loads(message.decode())
             # add client username, and channel port to msg metadata
             message["sender"] = client.name
-            message["port"] = channel.port
+            # TODO need to attach port user is from to the message somehow
+            # message["port"] = channel.port
             
             self.incoming_queue.put(message)
             
@@ -695,7 +697,12 @@ class Server:
         except queue.Empty as e:
             return
         
-        channel = channels[message["port"]]
+        client = message["sender"]
+        channel: Channel = self.get_clients_channel(client)
+        message["port"] = channel.port
+        # channel = channels[message["port"]]
+        
+        # print(f"channel from message: {message['port']}")
         
         # Process incoming client commands
         # if message["message_type"] == "server_command":
@@ -710,7 +717,7 @@ class Server:
         # TODO befor this 'if' need to check if client is muted or not
         if message["message_type"] == "basic":
             # if msg from user in a queue return early
-            if not channel.user_in_chat_lobby(message["sender"]):
+            if channel.get_client_in_queue(message["sender"]) is not None:
                 return
             
             # convert client msg to server formatted msg
@@ -721,7 +728,7 @@ class Server:
                 'message': formatted_msg
             }
             
-            for user in channel.chat_lobby:
+            for user in channel.chat_room:
                 if user.name != message["sender"]:
                     user.send_message(server_msg)
     
@@ -741,10 +748,10 @@ class Server:
             User: _description_
         """
         for channel in self.channels.values():
-            for client in channel.chat_lobby():
+            for client in channel.chat_room:
                 if client.name == username:
                     return client
-            for client in channel.waiting_queue():
+            for client in channel.client_queue:
                 if client.name == username:
                     return client
         return None
@@ -807,7 +814,7 @@ class Server:
         client: User = self.get_user(username)
         
         for channel in self.channels.values():
-            channel_msg = f"[Channel] {channel.name} {len(channel.chat_lobby)/{channel.max_users}/{len(channel.waiting_queue)}}."
+            channel_msg = f"[Channel] {channel.name} {len(channel.chat_room)}/{channel.capacity}/{len(channel.client_queue)}."
             message = {
                 "message_type": "basic",
                 "message": channel_msg
@@ -816,7 +823,7 @@ class Server:
             
         
     def switch(self, message):
-        args = message["args"].split(" ")
+        args = message["args"]
         new_channel_name = args[0]
         new_channel: Channel = self.get_channel(new_channel_name)
         sender_username = message["sender"]
