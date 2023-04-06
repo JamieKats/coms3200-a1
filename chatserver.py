@@ -79,6 +79,10 @@ MSG_LENGTH_LIMT = 9
 CONFIG_COMMAND = 1
 
 VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
+VALID_SERVER_COMMANDS = ['/kick', ]
+
+# TODO change to 100 when done testing
+AFK_TIME_LIMIT = 5
 
 
 # class Message()
@@ -96,7 +100,27 @@ class User:
         # self.port: int = port
         self.connection_socket: socket = connectiion_socket
         self.addr = addr
-        self.time_last_message = datetime.now()
+        self.time_last_active = time.time()
+        self.time_of_mute = 0 # if client muted = epoch of mute time else 0
+        self.time_muted = 0
+        
+        
+    def is_muted(self) -> bool:
+        now = time.time()
+        if now > self.time_of_mute + self.time_muted:
+            return False
+        return True
+    
+    def mute(self, time_muted: int) -> None:
+        # when user is muted add the muted time to the time of last activity to 
+        # simulate "pausing" the AFK timer 
+        self.time_last_active += time_muted
+        
+        self.time_of_mute = time.time()
+        self.time_muted = time_muted
+        
+    def remaining_time_muted(self) -> int:
+        return int(self.time_of_mute + self.time_muted - time.time())
         
         
     def send_message(self, message: dict):
@@ -109,8 +133,10 @@ class User:
         encoded_message = json.dumps(message).encode()
         encoded_message_len = len(encoded_message)
         encoded_message_len = f"{encoded_message_len:0{MSG_LENGTH_LIMT}d}".encode()
+
+        # print(f"sending msg to {self.addr}")
+        # print(f"msg: {encoded_message}")
         self.connection_socket.send(encoded_message_len)
-        
         self.connection_socket.send(encoded_message)
 
 
@@ -270,8 +296,8 @@ class Channel:
         Args:
             username (_type_): _description_
         """
-        client_in_chat_room = self.get_client_in_chat_room(username)
-        client_in_queue = self.get_client_in_queue(username)
+        client_in_chat_room: User = self.get_client_in_chat_room(username)
+        client_in_queue: User = self.get_client_in_queue(username)
 
         if client_in_chat_room is not None:
             # print("before removing client from channel")
@@ -281,6 +307,14 @@ class Channel:
                 
             self.chat_room.remove(client_in_chat_room)
             
+            # send message to remaining clients that client has left
+            # message = {
+            #     "message_type": "basic",
+            #     "message": f"[Server message ({get_time()})] {client_in_chat_room.name} has left the channel."
+            # }
+            # self.send_message(message)
+            # print(message["message"])
+            
             # print("after removing client from channel")
             # for user in self.chat_room:
             #     print(user.name)
@@ -289,6 +323,7 @@ class Channel:
             
         if client_in_queue is not None:
             self.client_queue.remove_user(client_in_queue)
+            # print(message["message"])
             return
         
         
@@ -399,39 +434,21 @@ class Channel:
         Returns:
             _type_: _description_
         """
-        # message = {
-        #     "message_type": "command",
-        #     "command": "/shutdown"
-        # }
-        # self.send_message(message, username)
-        
-        
-        # if self.user_in_chat_lobby(username):
-        #     for user in self.chat_lobby():
-        #         if user.name == username:
-        #             user.shutdown()
-        #             message = {
-        #                 "message_type": "basic",
-        #                 "message": client_quit_msg
-        #             }
-        #             self.send_message(message)
-        # else:
-        #     # kill client sockets
-        #     for user in self.waiting_queue():
-        #         if user.name == username:
-        #             self.waiting_queue.remove_user(user)
-        #             user.shutdown()
         
         client: User = self.get_client_in_channel(username)
         if client is None:
             return
         
-        client_quit_msg = f"[Server message ({get_time()})] {username} has left the channel."
-        print(client_quit_msg)
-        
         # remove client from channel and close connection
         self.remove_client_from_channel(username)
         
+        message = {
+            "message_type": "basic",
+            "message": f"[Server message ({get_time()})] {username} has left the channel."
+        }
+        
+        self.send_message(message)
+        print(message["message"])
         
         client.shutdown()
                     
@@ -466,7 +483,9 @@ class Server:
         signal.signal(signal.SIGINT, self.shutdown)
         
         # queue for messages from server command/client messages to buisness logic thread
-        self.incoming_queue = queue.Queue()
+        self.client_message_queue = queue.Queue()
+        
+        self.server_command_queue = queue.Queue()
         
         self.shutdown_server = False
         
@@ -502,6 +521,18 @@ class Server:
         for channel in self.channels.values():
             if channel.get_client_in_channel(username) is not None:
                 return channel
+            
+    def get_channel(self, channel_name: str):
+        """
+        Returns the channel if it exists, None otherwise
+
+        Args:
+            channel_name (str): _description_
+        """
+        for channel in self.channels.values():
+            if channel.name == channel_name:
+                return channel
+        return None
         
     def load_config(self, config_path):
         try:
@@ -573,7 +604,7 @@ class Server:
         # create daeomon thread to listen for server commands
         server_command_thread = threading.Thread(
             target=self.server_command_thread, 
-            args=(self.incoming_queue, ), 
+            args=(self.client_message_queue, self.server_command_queue), 
             daemon=True)
         server_command_thread.start()
         
@@ -581,7 +612,7 @@ class Server:
         # client msg or server command is received
         server_logic_thread = threading.Thread(
             target=self.server_logic_thread,
-            args=(self.incoming_queue, self.channels, ),
+            args=(self.client_message_queue, self.server_command_queue, self.channels, ),
             daemon=True)
         self.threads.append(server_logic_thread)
         server_logic_thread.start()
@@ -630,20 +661,19 @@ class Server:
             
     def server_command_thread(self, incoming_queue: queue.Queue):
         while True:
-            server_command = input().strip()
+            server_command = input().strip().split(" ")
+            command = server_command[0]
+            args = server_command[1:]
             message = {
                 "messsage_type": "server_command",
-                "message": server_command
+                "message": server_command,
             }
             incoming_queue.put(message)
             
-            if message["message"] == "/shutdown":
-                # self.shutdown_server = True
-                # self.shutdown()
-                self.shutdown_queue.put(1)
-                return
-            # print("in command thread")
-            # time.sleep(1)
+            # if message["message"] == "/shutdown":
+            #     self.shutdown_queue.put(1)
+            #     return
+            # elif 
     
 
     def client_listener_thread(self, client: User, channel: Channel):
@@ -661,9 +691,11 @@ class Server:
         channel.add_client_to_queue(client)
         
         while True:
-            # try:
-            message = client.connection_socket.recv(MSG_BUFFER_SIZE)
-            # except ConnectionResetError as e:
+            try:
+                message = client.connection_socket.recv(MSG_BUFFER_SIZE)
+            except ConnectionResetError as e:
+                print(f"Returning early from client_listener_thread: {e}")
+                return
             
             # return if empty message received indicating closed socket
             if message == b'':
@@ -686,10 +718,10 @@ class Server:
             # TODO need to attach port user is from to the message somehow
             # message["port"] = channel.port
             
-            self.incoming_queue.put(message)
+            self.client_message_queue.put(message)
             
     
-    def server_logic_thread(self, incoming_message_queue, channels):
+    def server_logic_thread(self, client_message_queue, server_command_queue, channels):
         """
             - Loop over queues and push new clients into channels + send queue update
             messages to clients
@@ -706,9 +738,11 @@ class Server:
         while not self.shutdown_server:
             self.process_channel_queues(channels)
 
-            self.process_client_messages(incoming_message_queue, channels)
+            self.process_client_messages(client_message_queue)
+
+            self.process_server_commands(server_command_queue)
             
-            self.process_server_commands(incoming_message_queue, channels)
+            self.check_afk_users(channels)
        
             time.sleep(0.01)
 
@@ -761,10 +795,9 @@ class Server:
                 
                 for i in range(0, users_to_add):
                     channel.move_client_to_lobby()
-                    
             
         
-    def process_client_messages(self, incoming_queue: ClientQueue, channels: dict):
+    def process_client_messages(self, incoming_queue: ClientQueue):
         """
         TODO: maybe set up so all messages in queue are processed and only 
         return when no msgs in queue
@@ -778,28 +811,29 @@ class Server:
         except queue.Empty as e:
             return
         
-        client_name = message["sender"]
-        channel = message["channel"]
-        # channel: Channel = self.get_clients_channel(client)
-        # message["channel"] = channel
-        # channel = channels[message["port"]]
-        
-        # print(f"channel from message: {message['port']}")
-        
-        # Process incoming client commands
-        # if message["message_type"] == "server_command":
-        #     pass
-        
         if message["message_type"] == "client_command":
             self.handle_client_command(message)
+            return
         
-        # incoming client msg can be command or normal msg
+        
+        client_name = message["sender"]
+        channel: Channel = message["channel"]
+        client: User  = channel.get_client_in_channel(client_name)
         
         # if normal msg
         # TODO befor this 'if' need to check if client is muted or not
         if message["message_type"] == "basic":
             # if msg from user in a queue return early
             if channel.get_client_in_queue(client_name) is not None:
+                return
+            
+            # if client muted dont process message
+            if client.is_muted():
+                message = {
+                    "message_type": "basic",
+                    "message": f"[Server message ({get_time()})] You are still muted for {client.remaining_time_muted()} seconds."
+                }
+                client.send_message(message)
                 return
             
             # convert client msg to server formatted msg
@@ -815,8 +849,45 @@ class Server:
                     user.send_message(server_msg)
     
     
-    def process_server_commands(self, incoming_queue, channels):
-        pass
+    def process_server_commands(self, server_command_queue):
+        try:
+            message = server_command_queue.get(block=False)
+        except queue.Empty as e:
+            return
+        
+        if message["command"] not in VALID_SERVER_COMMANDS:
+            return
+        
+        self.handle_server_command(message)
+        
+    def check_afk_users(channels):
+        message = {
+            "message_type": "basic",
+        }
+        for channel in channels:
+            for client in channel.chat_lobby:
+                if client.is_muted(): continue
+                
+                if client.time_last_active + AFK_TIME_LIMIT < time.time():
+                    client.remove_client_from_channel()
+                    client.shutdown()
+                    
+                    message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
+                    channel.send_message(message)
+                    print(message["message"])
+                    
+                
+            for client in channel.waiting_queue:
+                if client.is_muted(): continue
+                
+                if client.time_last_active + AFK_TIME_LIMIT < time.time():
+                    client.remove_client_from_channel()
+                    client.shutdown()
+                    
+                    message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
+                    channel.send_message(message)
+                    print(message["message"])
+                
     
     def get_user(self, username: str) -> User:
         """
@@ -856,6 +927,16 @@ class Server:
                 
                 
     def whisper(self, received_message):
+        # if client muted dont process message
+        client = self.get_user(received_message["sender"])
+        if client.is_muted():
+            message = {
+                "message_type": "basic",
+                "message": f"[Server message ({get_time()})] You are still muted for {client.remaining_time_muted()} seconds."
+            }
+            client.send_message(message)
+            return
+            
         args = received_message['args']
         whisper_target = args[0]
         whisper_message = args[1]
@@ -936,24 +1017,119 @@ class Server:
         current_channel: Channel = message["channel"]
         # current_channel_port: int = current_channel.port
         current_channel.remove_client_from_channel(sender_username)
-        new_channel.add_client_to_queue(sender)
         
-        # send client msg to close socket and reconnect on new port then close client connec
+        message = {
+            "message_type": "basic",
+            "message": f"[Server message ({get_time()})] {sender_username} has left the channel."
+        }
+        
+        self.send_message(message)
+        print(message["message"])
+        
+        # send client msg to close socket and reconnect on new port then close client connection
+        sender.switch_channel([new_channel.port])
+        
     
     def send(self, message):
         raise NotImplementedError
+    
+    def handle_server_command(self, message):
+        command = message["command"]
+        args = message["args"]
         
-    def get_channel(self, channel_name: str):
-        """
-        Returns the channel if it exists, None otherwise
+        if command == "/kick":
+            self.kick(args)
+        elif command == "/mute":
+            self.mute(args)
+        elif command == "/empty":
+            self.empty(args)
+        elif command == "/shutdown":
+            self.shutdown_queue.put(1)
+            
+    def kick(self, args):
+        channel_name = args[0].split(":")[0]
+        username = args[0].split(":")[1]
+        
+        channel: Channel = self.get_channel(channel_name)
+        
+        # channel doesnt exist
+        if channel is None:
+            print(f"[Server message ({get_time()})] {channel_name} does not exist.")
+            return
+        
+        # client not in specified channel
+        if channel.client_in_channel(username) == False:
+            print(f"[Server message ({get_time()})] {username} is not in {channel_name}.")
+            return
+        
+        channel.remove_client_from_channel(username)
+        client: User = channel.get_client_in_channel(username)
+        client.shutdown()
+        
+        message = {
+            "message_type": "basic",
+            "message": f"[Server message ({get_time()})] {username} has left the channel."
+        }
+        channel.send_message(message)
+        
+        print(f"[Server message ({get_time()})] Kicked {username}.")
+        
 
-        Args:
-            channel_name (str): _description_
-        """
-        for channel in self.channels.values():
-            if channel.name == channel_name:
-                return channel
-        return None
+    def mute(self, args):
+        channel_name = args[0].split(":")[0]
+        username = args[0].split(":")[1]
+        time_muted = args[1]
+        
+        # time must be positive integer
+        try:
+            time_muted = int(time_muted)
+            if time_muted < 1: raise Exception
+        except Exception as e:
+            print(f"[Server message ({get_time()})] Invalid mute time.")
+            return
+        
+        # user or channel doesnt exist
+        if self.get_channel(channel_name) is None or self.get_user(username) is None:
+            print(f"[Server message ({get_time()})] {username} is not here.")
+            
+        # user exists and time is valid
+        client = self.get_user(username)
+        
+        client.mute(time_muted)
+        print(f"[Server message ({get_time()})] Muted {username} for {time} seconds.")
+        
+        message = {
+            "message_type": "basic"
+        }
+        
+        channel: Channel = self.get_channel(channel_name)
+        for client in channel.chat_room:
+            if client.name == username:
+                message["message"] = f"[Server message ({get_time()})] You have been muted for {time} seconds."
+            else:
+                message["message"] = f"[Server message ({get_time()})] {username} has been muted for {time} seconds."
+            client.send_message(message)
+
+            
+            
+        
+    
+    def empty(self, args):
+        channel_name = args[0]
+        channel: Channel = self.get_channel(channel_name)
+        
+        if channel is None:
+            print(f"[Server message ({get_time()})] {channel_name} does not exist.")
+
+        
+        for client in channel.chat_room:
+            channel.remove_client_from_channel(client.name)
+            client.shutdwon()
+            
+        print(f"[Server message ({get_time()})] {channel_name} has been emptied.")
+    
+        
+    
         
         
 def main():

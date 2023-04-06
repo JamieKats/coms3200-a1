@@ -55,6 +55,7 @@ class Client:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect((SERVER_NAME, self.server_port))
+            print(f"Client connected on port {self.server_port}")
         except ConnectionRefusedError as e:
             print(f"REMOVE WHEN DONE: server socket connection refused: {e}...")
             exit(1)
@@ -165,7 +166,13 @@ class Client:
             except OSError:
                 return
             
-            message = json.loads(encoded_message.decode())
+            try:
+                message = json.loads(encoded_message.decode())
+            except Exception as e:
+                print(f"message {encoded_message.decode()} caused exception {e}")
+                exit()
+                
+            # print(message)
             if message["message_type"] == "command":
                 self.handle_server_command(message)
                 
@@ -198,6 +205,7 @@ class Client:
         Args:
             args (_type_): _description_
         """
+        # print("in switch")
         new_channel_port = int(args[0])
         self.server_port = new_channel_port
         self.close_socket()
@@ -205,6 +213,7 @@ class Client:
         
     def close_socket(self):
         # self.client_socket.shutdown(socket.SHUT_RDWR)
+        # print("Closing socket")
         self.client_socket.close()
     
             
