@@ -604,7 +604,7 @@ class Server:
         # create daeomon thread to listen for server commands
         server_command_thread = threading.Thread(
             target=self.server_command_thread, 
-            args=(self.client_message_queue, self.server_command_queue), 
+            args=(self.client_message_queue, ),
             daemon=True)
         server_command_thread.start()
         
@@ -860,16 +860,16 @@ class Server:
         
         self.handle_server_command(message)
         
-    def check_afk_users(channels):
+    def check_afk_users(self, channels):
         message = {
             "message_type": "basic",
         }
-        for channel in channels:
-            for client in channel.chat_lobby:
+        for channel in channels.values():
+            for client in channel.chat_room:
                 if client.is_muted(): continue
                 
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    client.remove_client_from_channel()
+                    channel.remove_client_from_channel(client.name)
                     client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
@@ -877,11 +877,11 @@ class Server:
                     print(message["message"])
                     
                 
-            for client in channel.waiting_queue:
+            for client in channel.client_queue:
                 if client.is_muted(): continue
                 
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    client.remove_client_from_channel()
+                    channel.remove_client_from_channel(client.name)
                     client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
