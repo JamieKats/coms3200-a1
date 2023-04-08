@@ -680,11 +680,11 @@ class Server:
             # check if message first word is valid command
             first_word = message["message"].split(" ")[0]
             if first_word in VALID_CLIENT_COMMANDS:
-                message = {
-                    "message_type": "client_command",
-                    "command": first_word,
-                    "args": message["message"].split(" ")[1:]
-                }
+                message["message_type"] = "client_command"
+                message["command"] = first_word
+                message["args"] = message["message"].split(" ")[1:]
+                del message["message"]
+                message["file"] = message.get("file", None)
             
             # add client username, and channel port to msg metadata
             message["sender"] = client.name
@@ -784,6 +784,7 @@ class Server:
             message = incoming_queue.get(block=False)
         except queue.Empty as e:
             return
+        # print(message)
         
         client_name = message["sender"]
         channel: Channel = message["channel"]
@@ -834,7 +835,6 @@ class Server:
         except queue.Empty as e:
             return
         if message["command"] not in VALID_SERVER_COMMANDS:
-            print(True)
             return
         
         self.handle_server_command(message)
@@ -1010,7 +1010,46 @@ class Server:
         
     
     def send(self, message):
-        raise NotImplementedError
+        # target client not in channel
+        target_client = message["args"][0]
+        file_path = message["args"][1]
+        
+        channel: Channel = self.get_clients_channel(message["sender"])
+        
+        reply_message = {
+            "message_type": "basic",
+        }
+        
+        # the target client is not in the senders channel
+        if channel.client_in_channel(target_client) == False:
+            reply_message["message"] = f"[Server message ({get_time()})] {target_client} is not here."
+            channel.send_message(reply_message, message["sender"])
+            return
+        
+        # the file path does not exist
+        if message["file"] == b'':
+            reply_message["message"] = f"[Server message ({get_time()})] {file_path} does not exist."
+            channel.send_message(reply_message, message["sender"])
+            return
+        
+        reply_message["message"] = f"[Server message ({get_time()})] You sent {file_path} to {target_client}."
+        channel.send_message(reply_message, message["sender"])
+        
+        print(f"[Server message ({get_time()})] {message['sender']} sent {file_path} to {target_client}.")
+        
+        # send msg with file
+        # NOTE remove "channel" key so json dumps doesnt fail
+        del message["channel"]
+        channel.send_message(message, target_client)
+        
+            
+        
+        
+        
+        # return
+        # print(f"msg receeived in send:\n{message}")
+        # print(message["file"]
+        
     
     def handle_server_command(self, message):
         command = message["command"]
