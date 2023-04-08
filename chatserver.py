@@ -79,10 +79,11 @@ MSG_LENGTH_LIMT = 9
 CONFIG_COMMAND = 1
 
 VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
-VALID_SERVER_COMMANDS = ['/kick', ]
+VALID_SERVER_COMMANDS = ['/kick', '/mute', '/empty', '/shutdown']
 
 # TODO change to 100 when done testing
-AFK_TIME_LIMIT = 5
+# AFK_TIME_LIMIT = 10
+AFK_TIME_LIMIT = 100
 
 
 # class Message()
@@ -604,7 +605,7 @@ class Server:
         # create daeomon thread to listen for server commands
         server_command_thread = threading.Thread(
             target=self.server_command_thread, 
-            args=(self.client_message_queue, ),
+            args=(self.server_command_queue, ),
             daemon=True)
         server_command_thread.start()
         
@@ -659,16 +660,17 @@ class Server:
         
             
             
-    def server_command_thread(self, incoming_queue: queue.Queue):
+    def server_command_thread(self, server_command_queue: queue.Queue):
         while True:
             server_command = input().strip().split(" ")
             command = server_command[0]
             args = server_command[1:]
             message = {
                 "messsage_type": "server_command",
-                "message": server_command,
+                "command": command,
+                "args": args
             }
-            incoming_queue.put(message)
+            server_command_queue.put(message)
             
             # if message["message"] == "/shutdown":
             #     self.shutdown_queue.put(1)
@@ -811,14 +813,19 @@ class Server:
         except queue.Empty as e:
             return
         
+        client_name = message["sender"]
+        channel: Channel = message["channel"]
+        client: User  = channel.get_client_in_channel(client_name)
+        
+        # reset AFK timer when client sends msg/cmd when not muted
+        if client.is_muted() == False:
+            client.time_last_active = time.time()
+            
         if message["message_type"] == "client_command":
             self.handle_client_command(message)
             return
         
         
-        client_name = message["sender"]
-        channel: Channel = message["channel"]
-        client: User  = channel.get_client_in_channel(client_name)
         
         # if normal msg
         # TODO befor this 'if' need to check if client is muted or not
@@ -854,8 +861,8 @@ class Server:
             message = server_command_queue.get(block=False)
         except queue.Empty as e:
             return
-        
         if message["command"] not in VALID_SERVER_COMMANDS:
+            print(True)
             return
         
         self.handle_server_command(message)
@@ -962,7 +969,7 @@ class Server:
         # print server whisper message
         server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"
         print(server_msg)
-            
+
     
     def quit(self, message):
         sender: str = message["sender"]
@@ -1062,8 +1069,8 @@ class Server:
             print(f"[Server message ({get_time()})] {username} is not in {channel_name}.")
             return
         
-        channel.remove_client_from_channel(username)
         client: User = channel.get_client_in_channel(username)
+        channel.remove_client_from_channel(username)
         client.shutdown()
         
         message = {
@@ -1091,6 +1098,7 @@ class Server:
         # user or channel doesnt exist
         if self.get_channel(channel_name) is None or self.get_user(username) is None:
             print(f"[Server message ({get_time()})] {username} is not here.")
+            return
             
         # user exists and time is valid
         client = self.get_user(username)
@@ -1105,9 +1113,9 @@ class Server:
         channel: Channel = self.get_channel(channel_name)
         for client in channel.chat_room:
             if client.name == username:
-                message["message"] = f"[Server message ({get_time()})] You have been muted for {time} seconds."
+                message["message"] = f"[Server message ({get_time()})] You have been muted for {time_muted} seconds."
             else:
-                message["message"] = f"[Server message ({get_time()})] {username} has been muted for {time} seconds."
+                message["message"] = f"[Server message ({get_time()})] {username} has been muted for {time_muted} seconds."
             client.send_message(message)
 
             
@@ -1120,11 +1128,11 @@ class Server:
         
         if channel is None:
             print(f"[Server message ({get_time()})] {channel_name} does not exist.")
+            return
 
-        
-        for client in channel.chat_room:
+        for client in channel.chat_room.copy():
             channel.remove_client_from_channel(client.name)
-            client.shutdwon()
+            client.shutdown()
             
         print(f"[Server message ({get_time()})] {channel_name} has been emptied.")
     
