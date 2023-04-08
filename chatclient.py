@@ -5,10 +5,12 @@ import json
 import queue
 from datetime import datetime
 import time
+from sender_receiver import SenderReceiver
 
 SERVER_NAME = '127.0.0.1'
 
-MSG_BUFFER_SIZE = 4096
+# MSG_BUFFER_SIZE = 4096
+MAX_MSG_BUFFER_SIZE = 10
 
 TCP_SEND_BUFFER_LIMIT = 9
 
@@ -109,38 +111,11 @@ class Client:
                 }
             self.send_message(message)
             
-                
-    
-    # def handle_command(self, command: str):
-    #     if command == '/whisper':
-    #         self.whisper()
-    #     elif command == '/quit':
-    #         self.quit()
-    #     elif command == '/list':
-    #         self.list()
-    #     elif command == '/switch':
-    #         self.switch()
-    #     elif command == '/send':
-    #         self.send()
-            
-    # def whisper(self):
-    #     raise NotImplementedError
-    
-    # def quit(self):
-    #     raise NotImplementedError
-        
-    # def list(self):
-    #     raise NotImplementedError
-        
-    # def switch(self):
-    #     raise NotImplementedError
-    
-    # def send(self):
-    #     raise NotImplementedError
         
     def send_message(self, message):
-        encoded_message = json.dumps(message).encode()
-        self.client_socket.send(encoded_message)
+        # encoded_message = json.dumps(message).encode()
+        # self.client_socket.send(encoded_message)
+        SenderReceiver.send_message(message, self.client_socket)
         
         
     def receiver_thread(self):
@@ -160,17 +135,20 @@ class Client:
             # NOTE recv msg len at start of message then call recv for the exact msg size
             # messages smaller than the max buffer size will need to be received in multiple chunks and put together
             
-            try:
-                msg_length = self.client_socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
-                encoded_message = self.client_socket.recv(int(msg_length))
-            except OSError:
-                return
+            # try:
+            #     msg_length = self.client_socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
+            #     encoded_message = self.client_socket.recv(int(msg_length))
+            # except OSError:
+            #     return
             
-            try:
-                message = json.loads(encoded_message.decode())
-            except Exception as e:
-                print(f"message {encoded_message.decode()} caused exception {e}")
-                exit()
+            # try:
+            #     message = json.loads(encoded_message.decode())
+            # except Exception as e:
+            #     print(f"message {encoded_message.decode()} caused exception {e}")
+            #     exit()
+            message = SenderReceiver.receive_message(self.client_socket)
+            
+            if message is None: return
                 
             # print(message)
             if message["message_type"] == "command":

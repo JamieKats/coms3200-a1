@@ -67,13 +67,12 @@ import json
 import queue
 from datetime import datetime
 import signal
-import os
-import concurrent
+from sender_receiver import SenderReceiver
 
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 1234
-MSG_BUFFER_SIZE = 4096
 
+MSG_BUFFER_SIZE = 4096
 MSG_LENGTH_LIMT = 9
 
 CONFIG_COMMAND = 1
@@ -86,31 +85,35 @@ VALID_SERVER_COMMANDS = ['/kick', '/mute', '/empty', '/shutdown']
 AFK_TIME_LIMIT = 100
 
 
-# class Message()
-
-def get_time():
-        """
-        Returns the time in 24 hour hh:mm:ss format
-        """
-        return datetime.now().strftime("%H:%M:%S")
+def get_time() -> str:
+    """
+    Returns the time in 24 hour hh:mm:ss format as a string.
+    """
+    return datetime.now().strftime("%H:%M:%S")
     
 
 class User:
     def __init__(self, name, connectiion_socket, addr) -> None:
-        self.name: str = name
-        # self.port: int = port
-        self.connection_socket: socket = connectiion_socket
+        self.name: str = name # name of the Client
+        self.connection_socket: socket = connectiion_socket # connection to client
         self.addr = addr
-        self.time_last_active = time.time()
-        self.time_of_mute = 0 # if client muted = epoch of mute time else 0
-        self.time_muted = 0
+        self.time_last_active = time.time() # time client was last active
+        self.time_of_mute = 0 # epoch of time client was muted
+        self.time_muted = 0 # time client was last muted for
         
         
     def is_muted(self) -> bool:
+        """
+        Is the client muted.
+
+        Returns:
+            bool: True if the client is muted, False otherwise.
+        """
         now = time.time()
         if now > self.time_of_mute + self.time_muted:
             return False
         return True
+    
     
     def mute(self, time_muted: int) -> None:
         # when user is muted add the muted time to the time of last activity to 
@@ -120,25 +123,30 @@ class User:
         self.time_of_mute = time.time()
         self.time_muted = time_muted
         
+        
     def remaining_time_muted(self) -> int:
         return int(self.time_of_mute + self.time_muted - time.time())
         
         
     def send_message(self, message: dict):
-        """
-        Send encoded message length then send the message after
+        SenderReceiver.send_message(message, self.connection_socket)
+    #     """
+    #     Send encoded message length then send the message after
 
-        Args:
-            message (dict): _description_
-        """
-        encoded_message = json.dumps(message).encode()
-        encoded_message_len = len(encoded_message)
-        encoded_message_len = f"{encoded_message_len:0{MSG_LENGTH_LIMT}d}".encode()
+    #     Args:
+    #         message (dict): _description_
+    #     """
+    #     encoded_message = json.dumps(message).encode()
+    #     encoded_message_len = len(encoded_message)
+    #     encoded_message_len = f"{encoded_message_len:0{MSG_LENGTH_LIMT}d}".encode()
 
-        # print(f"sending msg to {self.addr}")
-        # print(f"msg: {encoded_message}")
-        self.connection_socket.send(encoded_message_len)
-        self.connection_socket.send(encoded_message)
+    #     self.connection_socket.send(encoded_message_len)
+    #     self.connection_socket.send(encoded_message)
+        
+        
+    def receive_message(self) -> dict:
+        return SenderReceiver.receive_message(self.connection_socket)
+        
 
 
     def shutdown(self):
@@ -583,14 +591,7 @@ class Server:
             )
             
         return channels
-    
-    # def create_channel_queues(self, channels):
-    #     queues = {}
-        
-    #     for channel in channels:
-    #         queues
-        
-            
+             
             
     def start(self):
         """
@@ -618,14 +619,6 @@ class Server:
         self.threads.append(server_logic_thread)
         server_logic_thread.start()
         
-        # # start ser
-        # server_listen_thread = threading.Thread(
-        #     target=self.server_listen_thread,
-        #     # args=,
-        #     daemon=True
-        # )
-        # server_listen_thread.start()
-        
         # start up server threads to listen to channel sockets for incoming 
         # connections
         self.start_channel_listeners()
@@ -633,32 +626,7 @@ class Server:
         # when a msg sent to shutdown queue, start server shutdown process
         self.shutdown_queue.get(block=True)
         self.shutdown()
-        
-        
-    # def server_listen_thread(self):
-    #     while True:
-    #         # If OSError thrown because of closed socket return
-    #         try:
-    #             connection_socket, addr = self.server_socket.accept()
-    #         except OSError:
-    #             return
-            
-    #         client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
-    #         client_settings = json.loads(client_settings)
-    #         client = User(
-    #             name=client_settings["username"],
-    #             connectiion_socket=connection_socket,
-    #             addr=addr)
-            
-    #         # create listener thread for new user
-    #         client_listener_thread = threading.Thread(
-    #             target=self.client_listener_thread, 
-    #             args=(self.channels, client, int(client_settings["port"])), 
-    #             daemon=True)
-    #         self.threads.append(client_listener_thread)
-    #         client_listener_thread.start()
-        
-            
+         
             
     def server_command_thread(self, server_command_queue: queue.Queue):
         while True:
@@ -694,16 +662,20 @@ class Server:
         
         while True:
             try:
-                message = client.connection_socket.recv(MSG_BUFFER_SIZE)
+                # message = client.connection_socket.recv(MSG_BUFFER_SIZE)
+                message = client.receive_message()
+                # print(message)
             except ConnectionResetError as e:
                 print(f"Returning early from client_listener_thread: {e}")
                 return
             
             # return if empty message received indicating closed socket
-            if message == b'':
-                return
+            # if message == b'' or message is None:
+            #     return
             
-            message = json.loads(message.decode())
+            # message = json.loads(message.decode())
+            
+            if message is None: return
             
             # check if message first word is valid command
             first_word = message["message"].split(" ")[0]
