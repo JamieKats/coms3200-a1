@@ -1,24 +1,34 @@
+"""
+The University of Queensland
+Semester 1 2023 COMS3200 Assignment 1 Part C
+
+author: Jamie Katsamatsas 
+student id: 46747200
+
+This file contains the implementation of a client in a server client chat 
+program for COMS3200.
+
+Usage: python3 chatclient.py port username
+
+TODO remove all instances of todo print statements in all files
+"""
 import socket
 import threading
 import sys
 import json
 import queue
-from datetime import datetime
 import time
+from datetime import datetime
 from sender_receiver import SenderReceiver
 
-SERVER_NAME = '127.0.0.1'
+SERVER_HOST = '127.0.0.1'
 
-# MSG_BUFFER_SIZE = 4096
-MAX_MSG_BUFFER_SIZE = 10
-
-TCP_SEND_BUFFER_LIMIT = 9
-
-VALID_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
-
-class Client:
+class ChatClient:
+    """
+    Implements a client in a chat application connecting over TCP.
+    """
     def __init__(self) -> None:
-        # load channel info
+        # ensure enough cli arguments given
         if len(sys.argv) != 3:
             exit(1)
         
@@ -28,85 +38,75 @@ class Client:
             self.client_username: str = sys.argv[2]
         except:
             exit(1)
-            
+
+        # client settings sent to server on first connection            
         self.client_settings = {
-            # "port": self.server_port,
             "username": self.client_username
         }
         
-        self.threads = []
-        
-        self.time_of_mute = 0 # time mute was applied
-        self.mute_length = 0 # seconds of mute
-        
-        self.shutdown_client = False
-        
-        # input thread
-        # spin up thread to handle incoming/outgoing message queues
-        # input thread is daemon so don't need to put in threads list
+        # start daemon thread to handle user input
         input_thread = threading.Thread(
-            target=self.input_thread, 
-            # args=(, ), 
+            target=self.input_thread,
             daemon=True)
         input_thread.start()
         
+         # allows a child thread to signal to parent when the shutdown
         self.shutdown_queue = queue.Queue()
+        self.shutdown_client = False # when the client should shutdown
 
         
-    def connect_to_server(self):
+    def connect_to_server(self) -> None:
+        """
+        Connects to the server.
+        """
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.client_socket.connect((SERVER_NAME, self.server_port))
-            print(f"Client connected on port {self.server_port}")
+            self.client_socket.connect((SERVER_HOST, self.server_port))
         except ConnectionRefusedError as e:
-            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...")
+            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...") # TODO
             exit(1)
         
         
     def start(self):
         """
-        main thread does nothing (waits for children to finish)
-        child_1
-            - handles user input and passes to outgoing queue (daemon)
-        child_2
-            - checks outgoing queue and sends outgoing messages
-            - processes incoming messages:
-                - print to screen
-                - shut down client (/kick, /empty)
-                - switch mute flag (/mute))
-            can return when done, needs to be joined with main thread
+        Connects to server and starts threads required.
         """
         while self.shutdown_client == False:
             self.connect_to_server()
             
-            # send client username
+            # send client username on first connection
             self.client_socket.send(json.dumps(self.client_settings).encode())
-            
+
+            # start thread to handle incomming messages            
             receiver_thread = threading.Thread(
                 target=self.receiver_thread,
-                # args=(self.client_socket, ),
                 daemon=True)
             receiver_thread.start()
             receiver_thread.join()
             
-            time.sleep(1)
-        
         self.shutdown_queue.get(block=True)
         self.shutdown()
         
-        # receiver_thread.join()
+    
+    def close_socket(self) -> None:
+        """
+        Closes the chat client socket
+        """
+        # self.client_socket.shutdown(socket.SHUT_RDWR)
+        self.client_socket.close()
         
         
     def input_thread(self):
         """
-        Takes input from user, checks command (valid or invalid), then either 
-        tells user invalid input was entered or sends the input to the socket 
+        Handles processing command line input from the user.
+        
+        Input provided by the user is send to the server. 
         """
         while True:
             user_input = input().strip()
             
+            # if '/send' command used the file needs to be sent in the message
             first_word = user_input.split(" ")[0]
-            
             if first_word == "/send":
                 filename = user_input.split(" ")[2]
                 
@@ -115,11 +115,11 @@ class Client:
                     "message": user_input,
                     "file": self.load_file(filename)
                 }
+                
                 self.send_message(message)
                 continue
                 
-                
-            # input that isnt a command is a message
+            # message to be send to the server
             message = {
                     "message_type": "basic",
                     "message": user_input
@@ -128,69 +128,73 @@ class Client:
             self.send_message(message)
             
     
-    def load_file(self, filename: str) -> str:
+    def load_file(self, filename: str) -> bytes:
         """
-        https://www.thepythoncode.com/article/send-receive-files-using-sockets-python
-
+        Loads the given file into a bytes string.
+        
         Args:
-            filename (str): _description_
+            filename (str): the file to be loaded
 
         Returns:
-            str: _description_
+            bytes: the bytearray of the file, if file does not exist an empty 
+            byte string is returned
+            
+        Reference:
+        [1]    A. Rockikz, "How to Transfer Files in the Network using Sockets 
+        in Python." thepythoncode.com. 
+        https://www.thepythoncode.com/article/send-receive-files-using-sockets-python 
+        (accessed April 5, 2023).
         """
         try:
             with open(filename, "rb") as f:
                 file_bytes = f.read()
-                # print(file_bytes)
                 return file_bytes
         except FileNotFoundError:
             return b''
         
         
-    def save_file(self, filename, file_bytes) -> None:
+    def save_file(self, filename: str, file_bytes: bytes) -> None:
+        """
+        Saves a given file on the users system.
+
+        Args:
+            filename (str): name of the file to be saved
+            file_bytes (bytes): contents of the file to be saved in bytes
+        """
         with open(filename, "wb") as f:
             f.write(file_bytes)
         
         
-    def send_message(self, message):
-        # encoded_message = json.dumps(message).encode()
-        # self.client_socket.send(encoded_message)
+    def send_message(self, message: dict) -> None:
+        """
+        Sends the given message to the connected server.
+
+        Args:
+            message (dict): dictionary containing the message information and 
+            metadata to be sent
+        """
         SenderReceiver.send_message(message, self.client_socket)
         
         
-    def receiver_thread(self):
-        """Listens for incoming messages and handles them. If its just a message
-        print to screen, if its a command process it.
-
-        server commands that will need client processing,
-            - /kick, /empty, /shutdown on server side will be same as client 
-            calling /quit (force client to exit gracefully)
-            - /mute (set flag in client to tell them they are muted for n secs)
-
-        Args:
-            socket (_type_): _description_
+    def receiver_thread(self) -> None:
+        """
+        Listens for incoming messages from the server and processes them.
+        
+        Messages marked as 'basic' are to be printed out to the clients stdout.
+        If the message contains a file or a command this will require further 
+        processing.
+        
+        References:
+        [2]     G. McMillan, "Socket Programming HOWTO" python.org. 
+        https://docs.python.org/3/howto/sockets.html (accessed April 5, 2023)
         """
         while True:
-            # https://docs.python.org/3/howto/sockets.html
-            # NOTE recv msg len at start of message then call recv for the exact msg size
-            # messages smaller than the max buffer size will need to be received in multiple chunks and put together
-            
-            # try:
-            #     msg_length = self.client_socket.recv(TCP_SEND_BUFFER_LIMIT).decode()
-            #     encoded_message = self.client_socket.recv(int(msg_length))
-            # except OSError:
-            #     return
-            
-            # try:
-            #     message = json.loads(encoded_message.decode())
-            # except Exception as e:
-            #     print(f"message {encoded_message.decode()} caused exception {e}")
-            #     exit()
             message = SenderReceiver.receive_message(self.client_socket)
             
+            # message = None indicated the thread should be closed            
             if message is None: return
                 
-            # print(message)
+            # save the file if one in message
             if message["file_exists"] == True:
                 filename = message["args"][1]
                 file_bytes = message["file"]
@@ -203,7 +207,20 @@ class Client:
                 print(message["message"])
             
             
-    def handle_server_command(self, message):
+    def handle_server_command(self, message: dict) -> None:
+        """
+        Handles incoming server commands.
+        
+        Commands:
+            '/shutdown' - the client will shutdown gracefully closing all 
+            sockets and threads.
+            '/switch' - the current connection to the server will close and a 
+            new connection to the given server will start
+
+        Args:
+            message (dict): the message containing the command and any other 
+            data
+        """
         command = message["command"]
         if command == "/shutdown":
             self.shutdown()
@@ -212,41 +229,40 @@ class Client:
             args = message["args"]
             self.switch(args)
             return
-            
-            
-    def shutdown(self):
+
+
+    def shutdown(self) -> None:
+        """
+        Shutsdown the client.
+        
+        Socket connections are closed and the main thread exists. All threads 
+        marked as daemon will shutdown automatically.
+        """
         self.close_socket()
         self.shutdown_queue.put(1)
         self.shutdown_client = True
-    
-    
-    def switch(self, args):
+
+
+    def switch(self, args: list) -> None:
         """
-        When switching clients channel set the server_port to be the new channel
-        and close the current socket
+        Connects the client to a new channel.
+        
+        The client is manually disconnected from the current channel and the 
+        client will auto reconnect to a new channel provided by 'args'.
 
         Args:
-            args (_type_): _description_
+            args (list): switch command arguments provided by the server, 
+            contains the new server port.
         """
-        # print("in switch")
         new_channel_port = int(args[0])
         self.server_port = new_channel_port
         self.close_socket()
 
-        
-    def close_socket(self):
-        # self.client_socket.shutdown(socket.SHUT_RDWR)
-        # print("Closing socket")
-        self.client_socket.close()
-    
-            
-        
-        
-        
+
 def main():
-    client = Client()
+    client = ChatClient()
     client.start()
-    
-        
+
+
 if __name__ == "__main__":
     main()

@@ -16,30 +16,11 @@ class SenderReceiver:
         Args:
             message (dict): _description_
         """
-        # encode metadata and message and calculate length of both
-        # message = message_data["message"]
-        # del message_data["message"]
-        
-        # encoded_metadata = json.dumps(message).encode()
-        # encoded_message = message.encode()
-        
-        # encoded_metadata_len = len(encoded_metadata)
-        # encoded_message_len = len(encoded_message)
-        # encoded_metadata_len = f"{encoded_metadata_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
-        # encoded_message_len = f"{encoded_message_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
-
-        # # conn_socket.send(encoded_message_len)
-        # # conn_socket.send(encoded_message)
-        # conn_socket.sendall(encoded_metadata_len)
-        # conn_socket.sendall(encoded_metadata)
-        # conn_socket.sendall(encoded_message_len)
-        # conn_socket.sendall(encoded_message)
         message["file_exists"] = False
         if "file" in message.keys():
             file_bytes = message["file"]
             del message["file"]
             message["file_exists"] = True
-        # print(message)
         
         encoded_message = json.dumps(message).encode()
         encoded_message_len = len(encoded_message)
@@ -104,21 +85,13 @@ class SenderReceiver:
         
         bytes_read = 0
         chunks = []
-        # file_bytes = b''
         while bytes_read < msg_length:
-            # print("HELLO WORLD")
             buffer_size = min(MAX_BUFFER_SIZE, msg_length - bytes_read)
             chunk = conn_socket.recv(buffer_size)
-            # file_bytes += encoded_message
             chunks.append(chunk)
             bytes_read += len(chunk)
-            # bytes_read += buffer_size
-            # print(f"in receive: bytes_read: {bytes_read}    msg len: {msg_length}")
-            
-        # message["file"] = file_bytes
+
         message["file"] = b''.join(chunks)
-        # print(message)
-        # print(f"in receive: bytes_read: {bytes_read}    len file_bytes: {len(message['file'])}")
         return message
                 
             
