@@ -3,7 +3,7 @@ import socket
 
 TCP_MSG_LENGTH_DIGITS = 9
 
-MAX_BUFFER_SIZE = 5
+MAX_BUFFER_SIZE = 4096
 
 
 class SenderReceiver:
@@ -57,6 +57,16 @@ class SenderReceiver:
         
     @staticmethod
     def receive_message(conn_socket: socket) -> dict:
+        """
+        Reference for fix to get send of large files working well using chunks
+        https://enzircle.com/handling-message-boundaries-in-socket-programming
+
+        Args:
+            conn_socket (socket): _description_
+
+        Returns:
+            dict: _description_
+        """
         try:
             msg_length = conn_socket.recv(TCP_MSG_LENGTH_DIGITS).decode()
         except OSError:
@@ -93,16 +103,22 @@ class SenderReceiver:
             return None
         
         bytes_read = 0
-        file_bytes = b''
+        chunks = []
+        # file_bytes = b''
         while bytes_read < msg_length:
             # print("HELLO WORLD")
             buffer_size = min(MAX_BUFFER_SIZE, msg_length - bytes_read)
-            encoded_message = conn_socket.recv(buffer_size)
-            file_bytes += encoded_message
-            bytes_read += buffer_size
+            chunk = conn_socket.recv(buffer_size)
+            # file_bytes += encoded_message
+            chunks.append(chunk)
+            bytes_read += len(chunk)
+            # bytes_read += buffer_size
+            # print(f"in receive: bytes_read: {bytes_read}    msg len: {msg_length}")
             
-        message["file"] = file_bytes
+        # message["file"] = file_bytes
+        message["file"] = b''.join(chunks)
         # print(message)
+        # print(f"in receive: bytes_read: {bytes_read}    len file_bytes: {len(message['file'])}")
         return message
                 
             
