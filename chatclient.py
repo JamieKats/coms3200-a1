@@ -17,8 +17,6 @@ import threading
 import sys
 import json
 import queue
-import time
-from datetime import datetime
 from sender_receiver import SenderReceiver
 
 SERVER_HOST = '127.0.0.1'

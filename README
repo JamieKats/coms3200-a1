@@ -2,3 +2,4 @@
 References
 [1]     A. Rockikz, "How to Transfer Files in the Network using Sockets in Python." thepythoncode.com. https://www.thepythoncode.com/article/send-receive-files-using-sockets-python (accessed April 5, 2023).
 [2]     G. McMillan, "Socket Programming HOWTO" python.org. https://docs.python.org/3/howto/sockets.html (accessed April 5, 2023)
+[3]     J. Baker, "socket.shutdown vs socket.close" stackoverflow.com. https://stackoverflow.com/questions/409783/socket-shutdown-vs-socket-close (accessed March 29, 2023).
