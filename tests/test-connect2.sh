@@ -2,7 +2,7 @@
 
 rm server-capture server-capture-1 server-capture-compare client-capture-A client-capture-B client-capture-compare-A client-capture-compare-B client-capture-A-1 client-capture-B-1 names-A names-B names-S names-compare goodconf 2> /dev/null;
 
-echo -en "channel channel1 1234 10\nchannel channel2 2345 10\nchannel channel2 3456 10" > goodconf;
+echo -en "channel channel1 1236 10\nchannel channel2 2347 10\nchannel channel3 3458 10" > goodconf;
 
 timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
 timeout 4 bash -c "{ (sleep 1; echo 'Hi Tom') | $(./decide.sh $1 client) 1234 Arthur; }" > client-capture-A &

@@ -23,6 +23,7 @@ else
                 rm goodconf *capture*   2> /dev/null;
                 ./$first $1             2> /dev/null;
                 rm goodconf *capture*   2> /dev/null;
+                sleep 0.05;
             else
                  echo $first;
             fi

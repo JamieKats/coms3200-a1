@@ -3,7 +3,7 @@
 rm goodconf *capture* 2> /dev/null;
 
 DEBUG=0;
-echo -en "channel channel1 1234 10\nchannel channel2 2345 10\nchannel channel2 3456 10" > goodconf;
+echo -en "channel channel1 1238 10\nchannel channel2 2349 10\nchannel channel3 3460 10" > goodconf;
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
 timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 EmptyFour; }" > client-capture-A &
