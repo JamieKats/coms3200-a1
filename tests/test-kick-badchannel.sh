@@ -7,9 +7,9 @@ DEBUG=0;
 echo -en "channel channel1 1239 10\nchannel channel2 2350 10\nchannel channel3 3461 10" > goodconf;
 
 timeout 1 bash -c "{ (sleep 0.5; echo '/kick channel42:Joe') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 Joseph; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 Donald; }" > client-capture-B &
-timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1234 Joe; }" > client-capture-C ;
+timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2350 Joseph; }" > client-capture-A &
+timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1239 Donald; }" > client-capture-B &
+timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1239 Joe; }" > client-capture-C ;
 
 sleep 1.1;
 

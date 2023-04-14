@@ -6,8 +6,8 @@ DEBUG=0;
 echo -en "channel channel1 1262 10\nchannel channel2 2373 10\nchannel channel3 3484 10" > goodconf;
 
 timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1.5 bash -c "{ (sleep 0.5; echo '/whisper Chris You dont exist'; sleep 0.5; echo '/whisper Ula You dont exist either';) | $(./decide.sh $1 client) 1234 Ronald; }" > client-capture-A &
-timeout 2 bash -c "{ $(./decide.sh $1 client) 2345 Chris; }" > client-capture-B ;
+timeout 1.5 bash -c "{ (sleep 0.5; echo '/whisper Chris You dont exist'; sleep 0.5; echo '/whisper Ula You dont exist either';) | $(./decide.sh $1 client) 1262 Ronald; }" > client-capture-A &
+timeout 2 bash -c "{ $(./decide.sh $1 client) 2373 Chris; }" > client-capture-B ;
 
 sleep 2.1;
 

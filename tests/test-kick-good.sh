@@ -7,9 +7,9 @@ DEBUG=0;
 echo -en "channel channel1 1242 10\nchannel channel2 2353 10\nchannel channel3 3464 10" > goodconf;
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/kick channel1:Joe') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 Joseph; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 Glover; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1234 Joe; }" > client-capture-C ;
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2353 Joseph; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1242 Glover; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1242 Joe; }" > client-capture-C ;
 
 sleep 2.1;
 
@@ -30,7 +30,7 @@ clientmistakesam=$(diff client-capture-A-messages client-capture-compare-A | wc 
 clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc -l);
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1234 | wc -l);
+clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1242 | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];

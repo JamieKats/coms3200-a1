@@ -12,8 +12,8 @@ echo -e "testing send!" >> ./testtmp/AsFile.txt;
 echo -en "channel channel1 1255 10\nchannel channel2 2366 10\nchannel channel3 3477 10" > goodconf;
 
 timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 ReceiverOne; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.75; echo -e '/send ReceiverOne ./testtmp/AsFile.txt' ) | $(./decide.sh $1 client) 1234 SenderOne; }" > client-capture-B ;
+timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1255 ReceiverOne; }" > client-capture-A &
+timeout 1 bash -c "{ (sleep 0.75; echo -e '/send ReceiverOne ./testtmp/AsFile.txt' ) | $(./decide.sh $1 client) 1255 SenderOne; }" > client-capture-B ;
 
 sleep 1.1;
 

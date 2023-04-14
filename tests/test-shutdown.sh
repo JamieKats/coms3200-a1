@@ -6,9 +6,9 @@ DEBUG=0;
 echo -en "channel channel1 1257 10\nchannel channel2 2368 10\nchannel channel3 3479 10" > goodconf;
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/shutdown') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 EmptyOne; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 EmptyTwo; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1234 EmptyThree; }" > client-capture-C ;
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2368 EmptyOne; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1257 EmptyTwo; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1257 EmptyThree; }" > client-capture-C ;
 
 sleep 2.1;
 
@@ -29,12 +29,12 @@ clientmistakesam=$(diff client-capture-A-messages client-capture-compare-A | wc 
 clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc -l);
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1234 | wc -l);
-clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :2345 | wc -l);
-clientsocket3closed=$(ss -ntu | awk '{print $6}' | grep :3456 | wc -l);
-serversocket1closed=$(ss -ntu | awk '{print $5}' | grep :1234 | wc -l);
-serversocket2closed=$(ss -ntu | awk '{print $5}' | grep :2345 | wc -l);
-serversocket3closed=$(ss -ntu | awk '{print $5}' | grep :3456 | wc -l);
+clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1257 | wc -l);
+clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :2368 | wc -l);
+clientsocket3closed=$(ss -ntu | awk '{print $6}' | grep :3479 | wc -l);
+serversocket1closed=$(ss -ntu | awk '{print $5}' | grep :1257 | wc -l);
+serversocket2closed=$(ss -ntu | awk '{print $5}' | grep :2368 | wc -l);
+serversocket3closed=$(ss -ntu | awk '{print $5}' | grep :3479 | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];

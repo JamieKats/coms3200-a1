@@ -6,13 +6,13 @@ DEBUG=0;
 echo -en "channel channel1 1251 5\nchannel channel2 2362 10\nchannel channel3 3473 10" > goodconf;
 
 timeout 1.2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Liam; }" > client-capture-A &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Lachlan; }" > /dev/null &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Abraham; }" > /dev/null &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Graham; }" > /dev/null &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Harald; }" > /dev/null &
-timeout 1 bash -c "{ (sleep 0.5; echo '/quit') | $(./decide.sh $1 client) 1234 Eleanor; }" > client-capture-B &
-timeout 1 bash -c "{ $(./decide.sh $1 client) 1234 Ryan; }" > client-capture-C;
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Liam; }" > client-capture-A &
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Lachlan; }" > /dev/null &
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Abraham; }" > /dev/null &
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Graham; }" > /dev/null &
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Harald; }" > /dev/null &
+timeout 1 bash -c "{ (sleep 0.5; echo '/quit') | $(./decide.sh $1 client) 1251 Eleanor; }" > client-capture-B &
+timeout 1 bash -c "{ $(./decide.sh $1 client) 1251 Ryan; }" > client-capture-C;
 
 sleep 1.3;
 

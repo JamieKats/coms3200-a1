@@ -6,9 +6,9 @@ DEBUG=0;
 echo -en "channel channel1 1237 10\nchannel channel2 2348 10\nchannel channel3 3459 10" > goodconf;
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/empty channel42') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 EmptyOne; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 EmptyTwo; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1234 EmptyThree; }" > client-capture-C ;
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2348 EmptyOne; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1237 EmptyTwo; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1237 EmptyThree; }" > client-capture-C ;
 
 sleep 2.1;
 

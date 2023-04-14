@@ -6,15 +6,15 @@ DEBUG=0;
 echo -en "channel channel1 1243 5\nchannel channel2 2354 10\nchannel channel3 3465 10" > goodconf;
 
 timeout 1.3 bash -c "{ $(./decide.sh $1 server) goodconf; }"                                                        > server-capture    &
-timeout 1.2 bash -c "{ (sleep 0.3; echo '/list'; sleep 0.6; echo '/list') | $(./decide.sh $1 client) 1234 Dan; }"   > client-capture    &
-timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1234 Phil1; }"                                                      > /dev/null         &
-timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1234 Phil2; }"                                                      > /dev/null         &
-timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1234 Phil3; }"                                                      > /dev/null         &
-timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1234 Phil4; }"                                                      > /dev/null         &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 1234 Phil5; }"                                                      > /dev/null         &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 1234 Phil6; }"                                                      > /dev/null         &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2345 Phil7; }"                                                      > /dev/null         &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2345 Phil8; }"                                                      > /dev/null         ;
+timeout 1.2 bash -c "{ (sleep 0.3; echo '/list'; sleep 0.6; echo '/list') | $(./decide.sh $1 client) 1243 Dan; }"   > client-capture    &
+timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1243 Phil1; }"                                                      > /dev/null         &
+timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1243 Phil2; }"                                                      > /dev/null         &
+timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1243 Phil3; }"                                                      > /dev/null         &
+timeout 0.6 bash -c "{ $(./decide.sh $1 client) 1243 Phil4; }"                                                      > /dev/null         &
+timeout 1.2 bash -c "{ $(./decide.sh $1 client) 1243 Phil5; }"                                                      > /dev/null         &
+timeout 1.2 bash -c "{ $(./decide.sh $1 client) 1243 Phil6; }"                                                      > /dev/null         &
+timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2354 Phil7; }"                                                      > /dev/null         &
+timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2354 Phil8; }"                                                      > /dev/null         ;
 
 sleep 1.3;
 

@@ -6,8 +6,8 @@ DEBUG=0;
 echo -en "channel channel1 1252 10\nchannel channel2 2363 10\nchannel channel3 3474 10" > goodconf;
 
 timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 2345 ReceiverThree; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.75; echo -e '/send Bob ~/testtmp/AsFile.txt'; echo -e '/send ReceiverThree ~/testtmp/AsFile.txt') | $(./decide.sh $1 client) 1234 SenderThree; }" > client-capture-B ;
+timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 2363 ReceiverThree; }" > client-capture-A &
+timeout 1 bash -c "{ (sleep 0.75; echo -e '/send Bob ~/testtmp/AsFile.txt'; echo -e '/send ReceiverThree ~/testtmp/AsFile.txt') | $(./decide.sh $1 client) 1252 SenderThree; }" > client-capture-B ;
 
 sleep 1.1;
 

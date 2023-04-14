@@ -5,7 +5,7 @@ rm goodconf *capture* 2> /dev/null
 echo -en "channel channel1 1235 10\nchannel channel2 2346 10\nchannel channel3 3457 10" > goodconf
 
 timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }"      > server-capture &
-timeout 0.9 bash -c "{ $(./decide.sh $1 client) 1234 Marcus; }" > client-capture;
+timeout 0.9 bash -c "{ $(./decide.sh $1 client) 1235 Marcus; }" > client-capture;
 
 echo "Marcus has joined the channel1 channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Marcus.\nMarcus has joined the channel." > client-capture-compare;

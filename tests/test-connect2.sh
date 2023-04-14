@@ -5,8 +5,8 @@ rm server-capture server-capture-1 server-capture-compare client-capture-A clien
 echo -en "channel channel1 1236 10\nchannel channel2 2347 10\nchannel channel3 3458 10" > goodconf;
 
 timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
-timeout 4 bash -c "{ (sleep 1; echo 'Hi Tom') | $(./decide.sh $1 client) 1234 Arthur; }" > client-capture-A &
-timeout 4 bash -c "{ (sleep 2; echo 'Hi Arthur') | $(./decide.sh $1 client) 1234 Tom; }" > client-capture-B ;
+timeout 4 bash -c "{ (sleep 1; echo 'Hi Tom') | $(./decide.sh $1 client) 1236 Arthur; }" > client-capture-A &
+timeout 4 bash -c "{ (sleep 2; echo 'Hi Arthur') | $(./decide.sh $1 client) 1236 Tom; }" > client-capture-B ;
 
 echo -e "Arthur has joined the channel1 channel.\nTom has joined the channel.\nHi Tom\nHi Arthur" > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Arthur.\nArthur has joined the channel.\nTom has joined the channel.\nHi Tom\nHi Arthur" > client-capture-compare-A;

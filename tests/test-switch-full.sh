@@ -6,13 +6,13 @@ DEBUG=0;
 echo -en "channel channel1 1260 10\nchannel channel2 2371 5\nchannel channel2 3482 10" > goodconf;
 
 timeout 1.8 bash -c "{ $(./decide.sh $1 server) goodconf; }"                > server-capture    &
-timeout 1.8 bash -c "{ (sleep 0.3; echo 'Hi channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.9; echo 'Hi channel 2') | $(./decide.sh $1 client) 1234 Cody; }" > client-capture-A &
-timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2345 full1; }"              > client-capture-B  &
-timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2345 full2; }"              > /dev/null         &
-timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2345 full3; }"              > /dev/null         &
-timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2345 full4; }"              > /dev/null         &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2345 full5; }"              > /dev/null         &
-timeout 1.2 bash -c "{ sleep 0.1; $(./decide.sh $1 client) 2345 full6; }"   > /dev/null;
+timeout 1.8 bash -c "{ (sleep 0.3; echo 'Hi channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.9; echo 'Hi channel 2') | $(./decide.sh $1 client) 1260 Cody; }" > client-capture-A &
+timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2371 full1; }"              > client-capture-B  &
+timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2371 full2; }"              > /dev/null         &
+timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2371 full3; }"              > /dev/null         &
+timeout 1.8 bash -c "{ $(./decide.sh $1 client) 2371 full4; }"              > /dev/null         &
+timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2371 full5; }"              > /dev/null         &
+timeout 1.2 bash -c "{ sleep 0.1; $(./decide.sh $1 client) 2371 full6; }"   > /dev/null;
 
 sleep 2;
 

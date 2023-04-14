@@ -6,9 +6,9 @@ DEBUG=0;
 echo -en "channel channel1 1238 10\nchannel channel2 2349 10\nchannel channel3 3460 10" > goodconf;
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2345 EmptyFour; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1234 EmptyFive; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1234 EmptySix; }" > client-capture-C ;
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2349 EmptyFour; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1238 EmptyFive; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1238 EmptySix; }" > client-capture-C ;
 
 sleep 2.1;
 
@@ -28,8 +28,8 @@ clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc 
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1234 | wc -l);
-clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :2345 | wc -l);
+clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1238 | wc -l);
+clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :2349 | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];

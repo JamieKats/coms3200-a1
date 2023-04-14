@@ -6,7 +6,7 @@ DEBUG=0;
 echo -en "channel channel1 1247 10\nchannel channel2 2358 10\nchannel channel3 3469 10" > goodconf;
 
 timeout 1.6 bash -c "{ (sleep 0.3; echo '/mute channel1:Jono 0'; sleep 0.6; echo '/mute channel1:Jono -22') | $(./decide.sh $1 server) goodconf; }"             > server-capture &
-timeout 1.5 bash -c "{ (sleep 0.6; echo 'A day may come when I am muted'; sleep 0.6; echo 'But it is not this day') | $(./decide.sh $1 client) 1234 Jono; }"    > client-capture;
+timeout 1.5 bash -c "{ (sleep 0.6; echo 'A day may come when I am muted'; sleep 0.6; echo 'But it is not this day') | $(./decide.sh $1 client) 1247 Jono; }"    > client-capture;
 
 sleep 1.7;
 
