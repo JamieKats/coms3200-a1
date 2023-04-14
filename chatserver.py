@@ -196,11 +196,36 @@ class ChatServer:
             name = config_options[1]
             capacity = config_options[3]
             
+            # if channel name already exists exit
+            if name in self.channel_configs.keys():
+                exit(1)
+            
             self.channel_configs[name] = {
                 "port": port,
                 "capacity": capacity
                 }
+            
+            
+            self.check_channel_config(self.channel_configs)
           
+          
+    def check_channel_config(self, channel_configs):
+        """_summary_
+
+        Args:
+            chanel_config (_type_): _description_
+        """
+        channel_ports = [channel_config["port"] for channel_config in channel_configs]
+        if len(channel_ports) != len(set(channel_ports)) \
+            or 0 in channel_ports \
+            or len(channel_configs) < 3:
+                
+            exit(1)
+            
+        for channel_name, channel_info in self.channel_configs.items():
+            if channel_name[0].isdigit(): exit(1)
+            if channel_info["capacity"] < 5: exit(1)
+
     
     def create_channels(self) -> dict:
         """
@@ -228,7 +253,7 @@ class ChatServer:
             )
             
         return channels
-             
+    
             
     def start(self) -> None:
         """
