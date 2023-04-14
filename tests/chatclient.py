@@ -104,8 +104,7 @@ class ChatClient:
             try:
                 user_input = input().strip()
             except EOFError:
-                # return
-                continue
+                return
             
             # if '/send' command used the file needs to be sent in the message
             first_word = user_input.split(" ")[0]

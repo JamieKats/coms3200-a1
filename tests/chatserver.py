@@ -209,6 +209,7 @@ class ChatServer:
                 "capacity": capacity
                 }
             
+            
         self.check_channel_config(self.channel_configs)
           
           
@@ -222,7 +223,7 @@ class ChatServer:
         if len(channel_ports) != len(set(channel_ports)) \
             or 0 in channel_ports \
             or len(channel_configs) < 3:
-
+                
             exit(1)
             
         for channel_name, channel_info in self.channel_configs.items():
@@ -298,9 +299,7 @@ class ChatServer:
             try:
                 server_command = input().strip().split(" ")
             except EOFError:
-                continue
-                # return
-            
+                return
             command = server_command[0]
             args = server_command[1:]
             message = {
@@ -411,6 +410,7 @@ class ChatServer:
             
             # receive first message from client with clients username
             client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
+            print(f"in client listen thread: msg recevied:\n{client_settings}")
             client_settings = json.loads(client_settings)
             client = ServerClient(
                 name=client_settings["username"],

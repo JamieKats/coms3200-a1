@@ -1,11 +1,17 @@
 #!/bin/bash
 
+DEBUG=1;
+
 rm goodconf *capture* 2> /dev/null
 
-echo -en "channel channel1 1235 10\nchannel channel2 2346 10\nchannel channel3 3457 10" > goodconf
+echo -en "channel channel1 11235 10\nchannel channel2 2346 10\nchannel channel3 3457 10" > goodconf
 
-timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }"      > server-capture &
-timeout 0.9 bash -c "{ $(./decide.sh $1 client) 1235 Marcus; }" > client-capture;
+# timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }"      > server-capture &
+timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+# timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" &
+# timeout 0.9 bash -c "{ sleep 0.5; $(./decide.sh $1 client) 1235 Marcus; }" > client-capture &
+timeout 0.9 bash -c "{ sleep 0.5; $(./decide.sh $1 client) 11235 Marcus; }" > client-capture &
+sleep 1.1;
 
 echo "Marcus has joined the channel1 channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Marcus.\nMarcus has joined the channel." > client-capture-compare;
@@ -60,4 +66,4 @@ else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
