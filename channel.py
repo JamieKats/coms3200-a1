@@ -81,7 +81,7 @@ class Channel:
         # print user joined message to servers stdout
         server_msg = f"[Server message ({get_time()})] {user.name} has joined"\
             + f" the {self.name} channel."
-        print(server_msg)
+        print(server_msg, flush=True)
         
     
     def remove_client_from_channel(self, username: str) -> None:
@@ -245,7 +245,7 @@ class Channel:
         }
         
         self.send_message(message)
-        print(message["message"])
+        print(message["message"], flush=True)
         
         # shutdown client
         client.shutdown()

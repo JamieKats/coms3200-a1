@@ -61,7 +61,7 @@ class ChatClient:
         try:
             self.client_socket.connect((SERVER_HOST, self.server_port))
         except ConnectionRefusedError as e:
-            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...") # TODO
+            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
             exit(1)
         
         
@@ -206,7 +206,7 @@ class ChatClient:
                 self.handle_server_command(message)
                 
             elif message["message_type"] == "basic":
-                print(message["message"])
+                print(message["message"], flush=True)
             
             
     def handle_server_command(self, message: dict) -> None:

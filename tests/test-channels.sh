@@ -2,7 +2,11 @@
 
 rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;
 
-echo -en "channel channel1 1234 10\nchannel channel2 2345 10\nchannel channel3 3456 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 4 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
 timeout 5 bash -c "{ sleep 1; echo 'Hi Nobody' | $(./decide.sh $1 client) 2345 Terry; }" > client-capture-A &

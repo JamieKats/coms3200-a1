@@ -92,7 +92,7 @@ class ServerClient:
             self.conn_socket.shutdown(socket.SHUT_RDWR)
             self.conn_socket.close()
         except OSError as e:
-            print(f"OSError: Client connection may have already been closed: {e}") # TODO
+            print(f"OSError: Client connection may have already been closed: {e}", flush=True) # TODO
             pass
             
             
@@ -119,4 +119,4 @@ class ServerClient:
             self.conn_socket.shutdown(socket.SHUT_RDWR)
             self.conn_socket.close()
         except OSError as e:
-            print(f"OSError: Client connection may have already been closed: {e}") # TODO
+            print(f"OSError: Client connection may have already been closed: {e}", flush=True) # TODO

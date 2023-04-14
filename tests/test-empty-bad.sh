@@ -2,14 +2,19 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1237 10\nchannel channel2 2348 10\nchannel channel3 3459 10" > goodconf;
+DEBUG=1;
+
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
+
 
 timeout 2 bash -c "{ (sleep 0.5; echo '/empty channel42') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2348 EmptyOne; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1237 EmptyTwo; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1237 EmptyThree; }" > client-capture-C ;
-
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan2port EmptyOne; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port EmptyTwo; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan1port EmptyThree; }" > client-capture-C &
 sleep 2.1;
 
 echo -e "EmptyOne has joined the channel2 channel.\nEmptyTwo has joined the channel1 channel.\nEmptyThree has joined the channel1 channel.\nchannel42 does not exist." > server-capture-compare-messages;

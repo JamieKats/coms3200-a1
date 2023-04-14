@@ -2,13 +2,16 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1262 10\nchannel channel2 2373 10\nchannel channel3 3484 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+DEBUG=1;
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1.5 bash -c "{ (sleep 0.5; echo '/whisper Chris You dont exist'; sleep 0.5; echo '/whisper Ula You dont exist either';) | $(./decide.sh $1 client) 1262 Ronald; }" > client-capture-A &
-timeout 2 bash -c "{ $(./decide.sh $1 client) 2373 Chris; }" > client-capture-B ;
-
+timeout 1.5 bash -c "{ (sleep 0.5; echo '/whisper Chris You dont exist'; sleep 0.5; echo '/whisper Ula You dont exist either';) | $(./decide.sh $1 client) $chan1port Ronald; }" > client-capture-A &
+timeout 1.5 bash -c "{ sleep 0.5; $(./decide.sh $1 client) $chan2port Chris; }" > client-capture-B &
 sleep 2.1;
 
 echo -e "Ronald has joined the channel1 channel.\nChris has joined the channel2 channel.\nYou dont exist\nYou dont exist either" > server-capture-compare-messages;

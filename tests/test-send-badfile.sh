@@ -2,14 +2,17 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1253 10\nchannel channel2 2364 10\nchannel channel3 3475 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
 
-timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1253 ReceiverTwo; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.75; echo -e '/send ReceiverTwo ~/testtmp/AsFile.txt' ) | $(./decide.sh $1 client) 1253 SenderTwo; }" > client-capture-B ;
+DEBUG=1;
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-sleep 1.1;
+timeout 1.1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port ReceiverTwo; }" > client-capture-A &
+timeout 1 bash -c "{ (sleep 0.75; echo -e '/send ReceiverTwo ~/testtmp/AsFile.txt' ) | $(./decide.sh $1 client) $chan1port SenderTwo; }" > client-capture-B &
+sleep 1.2;
 
 echo -e "ReceiverTwo has joined the channel1 channel.\nSenderTwo has joined the channel1 channel." > server-capture-compare-messages;
 echo -e "Welcome to the channel1 channel, ReceiverTwo.\nReceiverTwo has joined the channel.\nSenderTwo has joined the channel." > client-capture-compare-A;

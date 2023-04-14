@@ -2,15 +2,18 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
+DEBUG=1;
 
-echo -en "channel channel1 1239 10\nchannel channel2 2350 10\nchannel channel3 3461 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 1 bash -c "{ (sleep 0.5; echo '/kick channel42:Joe') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2350 Joseph; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1239 Donald; }" > client-capture-B &
-timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1239 Joe; }" > client-capture-C ;
-
+timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan2port Joseph; }" > client-capture-A &
+timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port Donald; }" > client-capture-B &
+timeout 1 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan1port Joe; }" > client-capture-C &
 sleep 1.1;
 
 echo -e "Joseph has joined the channel2 channel.\nDonald has joined the channel1 channel.\nJoe has joined the channel1 channel.\nchannel42 Does not exist." > server-capture-compare-messages;

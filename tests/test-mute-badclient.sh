@@ -2,12 +2,16 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1245 10\nchannel channel2 2356 10\nchannel channel3 3467 10" > goodconf;
+DEBUG=1;
+
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 1 bash -c "{ (sleep 0.3; echo '/mute channel1:nonexist 22') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 0.9 bash -c "{ (sleep 0.6; echo 'Not muted yay') | $(./decide.sh $1 client) 1245 Dave; }"           > client-capture;
-
+timeout 0.9 bash -c "{ (sleep 0.6; echo 'Not muted yay') | $(./decide.sh $1 client) $chan1port Dave; }"           > client-capture &
 sleep 1.1;
 
 echo -e "Dave has joined the channel1 channel.\nnonexist is not here.\nNot muted yay"           > server-capture-compare;
@@ -24,7 +28,7 @@ then
     echo -e "\033[0;31mServer logs do not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
-        echo -e $(diff server-capture-messages server-capture-compare-messages) 2>/dev/null;
+        echo -e $(diff server-capture-messages server-capture-compare) 2>/dev/null;
     fi
 else
     echo -e "\033[0;32mServer logs match expected.\033[0m";

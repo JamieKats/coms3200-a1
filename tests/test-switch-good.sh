@@ -2,19 +2,22 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1261 10\nchannel channel2 2372 10\nchannel channel3 3483 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+DEBUG=1;
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 1.3 bash -c "{ $(./decide.sh $1 server) goodconf; }"        > server-capture    &
-timeout 1.2 bash -c "{ (sleep 0.3; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.3; echo 'I am in channel 2') | $(./decide.sh $1 client) 1261 Alex; }" > client-capture-A &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 1261 Marshall; }"   > client-capture-B  &
-timeout 1.2 bash -c "{ $(./decide.sh $1 client) 2372 Kimmel; }"     > client-capture-C;
-
+timeout 1.2 bash -c "{ (sleep 0.3; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.3; echo 'I am in channel 2') | $(./decide.sh $1 client) $chan1port Alex; }" > client-capture-A &
+timeout 1.2 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Marshall; }"   > client-capture-B  &
+timeout 1.2 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan2port Kimmel; }"     > client-capture-C &
 sleep 1.4;
 
 echo -e "Alex has joined the channel1 channel.\nMarshall has joined the channel1 channel.\nKimmel has joined the channel2 channel.\nI am in channel 1\nAlex has left the channel.\nAlex has joined the channel2 channel.\nI am in channel 2" > server-capture-compare-messages;
-echo -e "Welcome to the channel1 channel, Alex.\nAlex has joined the channel.\nMarshall has joined the channel.\nI am in channel 1\nWelcome to the channel2 channel, Alex.\nAlex has joined the channel.\nI am in channel 2"                > client-capture-compare-A-messages;
-echo -e "Welcome to the channel1 channel, Marshall.\nMarshall has joined the channel.\nI am in channel 1\nAlex has left the channel."   > client-capture-compare-B-messages;
+echo -e "Welcome to the channel1 channel, Alex.\nAlex has joined the channel.\nMarshall has joined the channel.\nI am in channel 1\nWelcome to the channel2 channel, Alex.\nAlex has joined the channel.\nI am in channel 2"                > client-capture-compare-A;
+echo -e "Welcome to the channel1 channel, Marshall.\nMarshall has joined the channel.\nI am in channel 1\nAlex has left the channel."   > client-capture-compare-B;
 echo -e "Welcome to the channel2 channel, Kimmel.\nKimmel has joined the channel.\nAlex has joined the channel.\nI am in channel 2"     > client-capture-compare-C;
 
 awk -F '] ' '{ print $2 }' server-capture   > server-capture-messages;
@@ -23,8 +26,8 @@ awk -F '] ' '{ print $2 }' client-capture-B > client-capture-B-messages;
 awk -F '] ' '{ print $2 }' client-capture-C > client-capture-C-messages;
 
 servermistakes=$(diff server-capture-messages server-capture-compare-messages       | wc -l);
-clientmistakesa=$(diff client-capture-A-messages client-capture-compare-A-messages  | wc -l);
-clientmistakesb=$(diff client-capture-B-messages client-capture-compare-B-messages  | wc -l);
+clientmistakesa=$(diff client-capture-A-messages client-capture-compare-A  | wc -l);
+clientmistakesb=$(diff client-capture-B-messages client-capture-compare-B  | wc -l);
 clientmistakesc=$(diff client-capture-C-messages client-capture-compare-C           | wc -l);
 
 clientmistakestot=$[clientmistakesa + clientmistakesb + clientmistakesc];

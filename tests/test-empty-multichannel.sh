@@ -2,14 +2,18 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1238 10\nchannel channel2 2349 10\nchannel channel3 3460 10" > goodconf;
+DEBUG=1;
 
-timeout 2 bash -c "{ (sleep 0.5; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 2349 EmptyFour; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) 1238 EmptyFive; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) 1238 EmptySix; }" > client-capture-C ;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
 
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
+
+timeout 2 bash -c "{ (sleep 0.75; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
+timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
+timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
 sleep 2.1;
 
 echo -e "EmptyFour has joined the channel2 channel.\nEmptyFive has joined the channel1 channel.\nEmptySix has joined the channel1 channel." > server-capture-compare-messages;
@@ -28,8 +32,8 @@ clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc 
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :1238 | wc -l);
-clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :2349 | wc -l);
+clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port| wc -l);
+clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :$chan2port | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];

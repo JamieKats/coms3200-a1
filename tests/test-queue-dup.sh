@@ -2,14 +2,17 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
-echo -en "channel channel1 1249 10\nchannel channel2 2360 10\nchannel channel3 3471 10" > goodconf;
+chan1port=$[5000 + $RANDOM % 15000]
+chan2port=$[20000 + $RANDOM % 15000]
+chan3port=$[45000 + $RANDOM % 15000]
+
+DEBUG=1;
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 0.5 bash -c "{ $(./decide.sh $1 client) 1249 Sam; }" > client-capture-A &
-timeout 0.7 bash -c "{ sleep 0.2; $(./decide.sh $1 client) 1249 Sam; }" > client-capture-B;
-
-sleep 1.1;
+timeout 1 bash -c "{ sleep 0.1; $(./decide.sh $1 client) $chan1port Sam; }" > client-capture-A &
+timeout 1 bash -c "{ sleep 0.2; $(./decide.sh $1 client) $chan1port Sam; }" > client-capture-B &
+sleep 2;
 
 echo -e "Sam has joined the channel1 channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Sam.\nSam has joined the channel." > client-capture-compare-A;
@@ -29,15 +32,10 @@ clientmistakestot=$[clientmistakesa + clientmistakesb];
 if [[ servermistakestot -gt 0 ]]
 then
     echo -e "\033[0;31mServer logs do not match expected.\033[0m";
-#     cat server-capture
-#     echo
-#     cat server-capture-names
-#     echo
-#     cat server-capture-compare-names
-#     echo '---'
-#     cat server-capture-messages
-#     echo
-#     cat server-capture-compare-messages
+    if [[ DEBUG -eq 1 ]]
+    then
+        echo -e $(diff server-capture-messages server-capture-compare-messages) 2>/dev/null;
+    fi
 else
     echo -e "\033[0;32mServer logs match expected.\033[0m";
 fi

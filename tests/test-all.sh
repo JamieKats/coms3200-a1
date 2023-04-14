@@ -16,14 +16,15 @@ else
         ext=${first: -3};
         if [ "$head" != "$comm" ];
         then
-           
             if [ "$ext" = "$test" ];
             then
+                sleep 0.1;
                 echo -e "\e[38;5;226m$first:\e[38;5;255m";
                 rm goodconf *capture*   2> /dev/null;
-                ./$first $1             2> /dev/null;
+                STUB=$RANDOM
+                ./$first $1;
                 rm goodconf *capture*   2> /dev/null;
-                sleep 0.05;
+                sleep 0.1;
             else
                  echo $first;
             fi

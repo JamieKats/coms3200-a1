@@ -334,7 +334,7 @@ class ChatServer:
             try:
                 message = client.receive_message()
             except ConnectionResetError as e:
-                print(f"Returning early from client_listener_thread: {e}") # TODO
+                print(f"Returning early from client_listener_thread: {e}", flush=True) # TODO
                 return
             
             # None message indicated client socket is closed
@@ -492,7 +492,7 @@ class ChatServer:
             
             # convert client msg to server formatted msg
             formatted_msg = f"[{client_name} ({get_time()})] {message['message']}"
-            print(formatted_msg)
+            print(formatted_msg, flush=True)
             server_msg = {
                 'message_type': 'basic',
                 'message': formatted_msg
@@ -549,7 +549,7 @@ class ChatServer:
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
                     channel.send_message(message)
-                    print(message["message"])
+                    print(message["message"], flush=True)
                     
             for client in channel.client_queue:
                 # ignore muted clients
@@ -562,7 +562,7 @@ class ChatServer:
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
                     channel.send_message(message)
-                    print(message["message"])
+                    print(message["message"], flush=True)
                 
     
     def get_client(self, username: str) -> ServerClient:
@@ -656,7 +656,7 @@ class ChatServer:
         
         # print server whisper message
         server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"
-        print(server_msg)
+        print(server_msg, flush=True)
 
     
     def quit(self, message: dict) -> None:
@@ -741,7 +741,7 @@ class ChatServer:
         }
         
         self.send_message(message)
-        print(message["message"])
+        print(message["message"], flush=True)
         
         # send client msg to close socket and reconnect on new port then close 
         # client connection
@@ -781,7 +781,7 @@ class ChatServer:
         channel.send_message(reply_message, message["sender"])
         
         # print server message
-        print(f"[Server message ({get_time()})] {message['sender']} sent {file_path} to {target_client}.")
+        print(f"[Server message ({get_time()})] {message['sender']} sent {file_path} to {target_client}.", flush=True)
         
         # send msg with file
         del message["channel"] # remove "channel" key so json dumps doesnt fail
@@ -821,12 +821,12 @@ class ChatServer:
         
         # channel doesnt exist
         if channel is None:
-            print(f"[Server message ({get_time()})] {channel_name} does not exist.")
+            print(f"[Server message ({get_time()})] {channel_name} does not exist.", flush=True)
             return
         
         # client not in specified channel
         if channel.client_in_channel(username) == False:
-            print(f"[Server message ({get_time()})] {username} is not in {channel_name}.")
+            print(f"[Server message ({get_time()})] {username} is not in {channel_name}.", flush=True)
             return
 
         # close connection with client        
@@ -840,7 +840,7 @@ class ChatServer:
         channel.send_message(message)
 
         # print server message        
-        print(f"[Server message ({get_time()})] Kicked {username}.")
+        print(f"[Server message ({get_time()})] Kicked {username}.", flush=True)
         
 
     def mute(self, args: list) -> None:
@@ -859,18 +859,18 @@ class ChatServer:
             time_muted = int(time_muted)
             if time_muted < 1: raise Exception
         except Exception:
-            print(f"[Server message ({get_time()})] Invalid mute time.")
+            print(f"[Server message ({get_time()})] Invalid mute time.", flush=True)
             return
         
         # user or channel doesnt exist
         if self.get_channel(channel_name) is None or self.get_client(username) is None:
-            print(f"[Server message ({get_time()})] {username} is not here.")
+            print(f"[Server message ({get_time()})] {username} is not here.", flush=True)
             return
             
         # user exists and time is valid
         client = self.get_client(username)
         client.mute(time_muted)
-        print(f"[Server message ({get_time()})] Muted {username} for {time} seconds.")
+        print(f"[Server message ({get_time()})] Muted {username} for {time} seconds.", flush=True)
         message = {
             "message_type": "basic"
         }
@@ -897,7 +897,7 @@ class ChatServer:
         
         # channel doesnt exist
         if channel is None:
-            print(f"[Server message ({get_time()})] {channel_name} does not exist.")
+            print(f"[Server message ({get_time()})] {channel_name} does not exist.", flush=True)
             return
 
         # close all clients connection in the chat lobby
@@ -905,7 +905,7 @@ class ChatServer:
             channel.remove_client_from_channel(client.name)
             client.shutdown()
             
-        print(f"[Server message ({get_time()})] {channel_name} has been emptied.")
+        print(f"[Server message ({get_time()})] {channel_name} has been emptied.", flush=True)
     
         
 def main():
