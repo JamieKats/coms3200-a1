@@ -6,7 +6,7 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=0;
+DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 2.1 bash -c "{ (sleep 1.3; echo '/mute channel1:Richard 1') | $(./decide.sh $1 server) goodconf; }" > server-capture &

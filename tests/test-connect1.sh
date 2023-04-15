@@ -2,7 +2,7 @@
 
 rm goodconf *capture* 2> /dev/null
 
-DEBUG=0;
+DEBUG=1;
 
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
@@ -68,4 +68,4 @@ else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null

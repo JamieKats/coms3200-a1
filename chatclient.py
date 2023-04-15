@@ -170,12 +170,17 @@ class ChatClient:
     def send_message(self, message: dict) -> None:
         """
         Sends the given message to the connected server.
-
+        
         Args:
             message (dict): dictionary containing the message information and 
             metadata to be sent
         """
-        SenderReceiver.send_message(message, self.client_socket)
+        if SenderReceiver.send_message(message, self.client_socket) == True:
+            return
+        
+        # if send_message returned false the server must be closed, so shutdown 
+        # client
+        self.shutdown()
         
         
     def receiver_thread(self) -> None:

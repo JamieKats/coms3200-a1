@@ -26,16 +26,24 @@ class SenderReceiver:
         encoded_message_len = len(encoded_message)
         encoded_message_len = f"{encoded_message_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
 
-        
-        conn_socket.sendall(encoded_message_len)
-        conn_socket.sendall(encoded_message)
+        try:
+            conn_socket.sendall(encoded_message_len)
+            conn_socket.sendall(encoded_message)
+        except BrokenPipeError:
+            return False
         
         if message["file_exists"]:
             file_len = len(file_bytes)
             file_len = f"{file_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
             
-            conn_socket.sendall(file_len)
-            conn_socket.sendall(file_bytes)
+            try:        
+                conn_socket.sendall(file_len)
+                conn_socket.sendall(file_bytes)
+            except BrokenPipeError:
+                return False
+            
+        return True
+        
         
     @staticmethod
     def receive_message(conn_socket: socket) -> dict:
@@ -53,6 +61,7 @@ class SenderReceiver:
             msg_length = conn_socket.recv(TCP_MSG_LENGTH_DIGITS).decode()
         except OSError:
             return None
+        # print(msg_length)
         
         try:
             msg_length = int(msg_length)
@@ -61,14 +70,13 @@ class SenderReceiver:
         
         bytes_read = 0
         message = ''
-        
         while bytes_read < msg_length:
-            # print("received a msg chunk")
             buffer_size = min(MAX_BUFFER_SIZE, msg_length - bytes_read)
             encoded_message = conn_socket.recv(buffer_size)
             message += encoded_message.decode()
             bytes_read += buffer_size
             
+        # print(message)
         message = json.loads(message)
         
         # check if file expected
