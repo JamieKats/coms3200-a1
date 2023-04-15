@@ -12,6 +12,7 @@ echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchanne
 
 timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
 timeout 1.9 bash -c "{ sleep 1; $(./decide.sh $1 client) $chan1port Marcus; }" > client-capture &
+# timeout 1.9 bash -c "{ sleep 1; $(./decide.sh $1 client) $chan1port Marcus; }" &
 sleep 2.1;
 
 echo "Marcus has joined the channel1 channel." > server-capture-compare;
@@ -50,7 +51,7 @@ then
     echo -e "\033[0;31mServer stdout does not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
-        echo -e $(diff server-capture-1 server-capture-compare) 2>/dev/null;
+        echo -e $(diff server-capture-1 server-capture-compare);
     fi
 else
     echo -e "\033[0;32mServer stdout matches expected.\033[0m";
@@ -61,7 +62,7 @@ then
     echo -e "\033[0;31mClient stdout does not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
-        echo -e $(diff server-capture-1 server-capture-compare) 2>/dev/null;
+        echo -e $(diff server-capture-1 server-capture-compare);
     fi
 else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";

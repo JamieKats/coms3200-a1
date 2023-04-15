@@ -27,9 +27,11 @@ class SenderReceiver:
         encoded_message_len = f"{encoded_message_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
 
         try:
+            # print(f"\nsend in sender_recevver: msg len: {encoded_message_len}\nmsg: {encoded_message}\n")
             conn_socket.sendall(encoded_message_len)
             conn_socket.sendall(encoded_message)
-        except BrokenPipeError:
+        except BrokenPipeError or ConnectionResetError:
+            # print("\nBROKEN PIPE IN send_message sender_recevier\n")
             return False
         
         if message["file_exists"]:
@@ -63,7 +65,7 @@ class SenderReceiver:
             msg_length = conn_socket.recv(TCP_MSG_LENGTH_DIGITS).decode()
         except OSError:
             return None
-        # print(msg_length)
+        # print(f"msg len receved in sender recevier\n{msg_length}")
         
         try:
             msg_length = int(msg_length)
@@ -78,7 +80,7 @@ class SenderReceiver:
             message += encoded_message.decode()
             bytes_read += buffer_size
             
-        # print(message)
+        # print(f"msg receved in sender recevier\n{message}")
         message = json.loads(message)
         
         # check if file expected

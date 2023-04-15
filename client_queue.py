@@ -12,7 +12,7 @@ class ClientQueue(list):
         self.lock: threading.Lock = threading.Lock()
         
         
-    def put(self, client: ServerClient) -> None:
+    def put(self, client: ServerClient, channel_name: str) -> None:
         """
         Adds the client to the end of the queue in a threadsafe way.
 
@@ -21,6 +21,15 @@ class ClientQueue(list):
         """
         self.lock.acquire()
         self.append(client)
+        
+        # everyone joining a queue is sent the welcome to the chnnel msg        
+        welcome_msg = f"[Server message ({get_time()})] Welcome to the " \
+            + f"{channel_name} channel, {client.name}."
+        message = {
+            'message_type': 'basic',
+            'message': welcome_msg
+        }
+        client.send_message(message)
         self.lock.release()
         
         

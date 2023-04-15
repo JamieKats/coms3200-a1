@@ -388,6 +388,8 @@ class ChatServer:
             self.process_server_commands(server_command_queue)
             
             self.check_afk_clients(channels)
+            
+            # self.send_outgoing_messages()
        
             # add small sleep to slow down busy wait a bit
             time.sleep(0.01)
@@ -578,6 +580,9 @@ class ChatServer:
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
                     channel.send_message_clients_in_channel(message)
                     print(message["message"], flush=True)
+                    
+                    
+    # def send_outgoing_messages()
                 
     
     def get_client(self, username: str) -> ServerClient:

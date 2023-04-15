@@ -1,5 +1,6 @@
 import time
 import socket
+import threading
 from sender_receiver import SenderReceiver
 
 class ServerClient:
@@ -10,6 +11,7 @@ class ServerClient:
         self.time_last_active = time.time() # time client was last active
         self.time_of_mute = 0 # epoch of time client was muted
         self.time_muted = 0 # time client was last muted for
+        self.lock = threading.Lock()
         
         
     def is_muted(self) -> bool:
@@ -56,7 +58,9 @@ class ServerClient:
         Args:
             message (dict): the message to be sent to the client
         """
+        self.lock.acquire()
         SenderReceiver.send_message(message, self.conn_socket)
+        self.lock.release()
         
         
     def receive_message(self) -> dict:

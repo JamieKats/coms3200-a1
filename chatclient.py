@@ -112,15 +112,16 @@ class ChatClient:
         Input provided by the user is send to the server. 
         """
         while True:
-            print("in client input thread")
+            # print("in client input thread")
+            # sys.stdin = open("/dev/tty")
             try:
-                # user_input = input().strip()
-                user_input = sys.stdin.read().strip()
+                user_input = input().strip()
+                # user_input = sys.stdin.read().strip()
             except EOFError:
                 # return
-                print("in kjhfbgdjhfkbg")
+                # print("in kjhfbgdjhfkbg")
                 continue
-            print(user_input)
+            # print(user_input)
             incoming_commands.put(user_input)
             
             # # if '/send' command used the file needs to be sent in the message

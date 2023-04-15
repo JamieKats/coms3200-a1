@@ -1,4 +1,5 @@
 import socket
+import threading
 from server_client import ServerClient
 from client_queue import ClientQueue
 from utils import get_time
@@ -16,6 +17,7 @@ class Channel:
         self.chat_room: list = []
         self.client_queue: ClientQueue = ClientQueue()
         self.conn_socket = conn_socket
+        # self.lock = threading.Lock()
         
         
     def add_client_to_queue(self, client: ServerClient) -> None:
@@ -30,33 +32,33 @@ class Channel:
         Args:
             client (ServerClient): the client to add to the queue
         """
-        self.client_queue.put(client)
+        self.client_queue.put(client, self.name)
         
-        # send client welcome message            
-        welcome_msg = f"[Server message ({get_time()})] Welcome to the " \
-            + f"{self.name} channel, {client.name}."
-        message = {
-            'message_type': 'basic',
-            'message': welcome_msg
-        }
-        client.send_message(message)
+        # # send client welcome message            
+        # welcome_msg = f"[Server message ({get_time()})] Welcome to the " \
+        #     + f"{self.name} channel, {client.name}."
+        # message = {
+        #     'message_type': 'basic',
+        #     'message': welcome_msg
+        # }
+        # client.send_message(message)
         
-        # return early if client added is only one in queue and there is a free 
-        # spot in the lobby return
-        if len(self.client_queue) == 1 and len(self.chat_room) < self.capacity:
-            return
+        # # return early if client added is only one in queue and there is a free 
+        # # spot in the lobby
+        # if len(self.client_queue) == 1 and len(self.chat_room) < self.capacity:
+        #     return
         
-        # send the client the queue location message
-        queue_loc_msg = f"[Server message ({get_time()})] You are in the " \
-            + f"waiting queue and there are {len(self.client_queue) - 1} " \
-            + "user(s) ahead of you."
-        message = {
-            'message_type': 'basic',
-            'message': queue_loc_msg
-        }
-        client.send_message(message)
+        # # send the client the queue location message
+        # queue_loc_msg = f"[Server message ({get_time()})] You are in the " \
+        #     + f"waiting queue and there are {len(self.client_queue) - 1} " \
+        #     + "user(s) ahead of you."
+        # message = {
+        #     'message_type': 'basic',
+        #     'message': queue_loc_msg
+        # }
+        # client.send_message(message)
 
-        
+
     def move_client_to_lobby(self) -> None:
         """
         Moves the client from the waiting queue to the chat room.
@@ -244,9 +246,11 @@ class Channel:
             "message": f"[Server message ({get_time()})] {username} has left the channel."
         }
 
-        # send client leaving message to everyone in channel and print for server        
-        self.send_message_clients_in_channel(message)
-        print(message["message"], flush=True)
+        # send client leaving message to everyone in channel and print for server
+        # only when client shutsdown_gracefully
+        if graceful_shutdown == True:        
+            self.send_message_clients_in_channel(message)
+            print(message["message"], flush=True)
         
         # shutdown client
         client.shutdown(graceful_shutdown=graceful_shutdown)
