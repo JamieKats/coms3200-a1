@@ -9,7 +9,7 @@ MAX_BUFFER_SIZE = 4096
 class SenderReceiver:
     
     @staticmethod
-    def send_message(message: dict, conn_socket: socket) -> None:
+    def send_message(message: dict, conn_socket: socket) -> bool:
         """
         Send encoded message length then send the message after
 

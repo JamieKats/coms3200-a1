@@ -562,7 +562,7 @@ class ChatServer:
                     # client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
-                    channel.send_message(message)
+                    channel.send_message_clients_in_channel(message)
                     print(message["message"], flush=True)
                     
             for client in channel.client_queue:
@@ -576,7 +576,7 @@ class ChatServer:
                     # client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
-                    channel.send_message(message)
+                    channel.send_message_clients_in_channel(message)
                     print(message["message"], flush=True)
                 
     

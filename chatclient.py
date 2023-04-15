@@ -43,8 +43,10 @@ class ChatClient:
         }
         
         # start daemon thread to handle user input
+        self.client_command_queue = queue.Queue()
         input_thread = threading.Thread(
             target=self.client_input_thread,
+            args=(self.client_command_queue, ),
             daemon=True)
         input_thread.start()
         
@@ -74,6 +76,15 @@ class ChatClient:
             
             # send client username on first connection
             self.client_socket.send(json.dumps(self.client_settings).encode())
+            
+            # start client command logic that will take messages on the incoming
+            # stdin queue and send them to the server connection established 
+            # above
+            client_command_logic_thread = threading.Thread(
+                target=self.client_command_logic_thread,
+                args=(self.client_command_queue, ),
+                daemon=True)
+            client_command_logic_thread.start()
 
             # start thread to handle incomming messages            
             receiver_thread = threading.Thread(
@@ -94,42 +105,77 @@ class ChatClient:
         self.client_socket.close()
         
         
-    def client_input_thread(self):
+    def client_input_thread(self, incoming_commands: queue.Queue):
         """
         Handles processing command line input from the user.
         
         Input provided by the user is send to the server. 
         """
         while True:
+            print("in client input thread")
             try:
-                user_input = input().strip()
+                # user_input = input().strip()
+                user_input = sys.stdin.read().strip()
             except EOFError:
-                return
-                # continue
+                # return
+                print("in kjhfbgdjhfkbg")
+                continue
+            print(user_input)
+            incoming_commands.put(user_input)
+            
+            # # if '/send' command used the file needs to be sent in the message
+            # first_word = user_input.split(" ")[0]
+            # if first_word == "/send":
+            #     filename = user_input.split(" ")[2]
+                
+            #     message = {
+            #         "message_type": "basic",
+            #         "message": user_input,
+            #         "file": self.load_file(filename)
+            #     }
+                
+            #     if self.send_message(message) == False: break
+            #     continue
+                
+            # # message to be send to the server
+            # message = {
+            #         "message_type": "basic",
+            #         "message": user_input
+            #     }
+            
+            # if self.send_message(message) == False: break
+        
+        # self.shutdown_client = True
+        
+        
+    def client_command_logic_thread(self, incoming_commands: queue.Queue):
+        while True:
+            # print("in client command thread")
+            message = incoming_commands.get(block=True)
             
             # if '/send' command used the file needs to be sent in the message
-            first_word = user_input.split(" ")[0]
+            first_word = message.split(" ")[0]
             if first_word == "/send":
-                filename = user_input.split(" ")[2]
+                filename = message.split(" ")[2]
                 
                 message = {
                     "message_type": "basic",
-                    "message": user_input,
+                    "message": message,
                     "file": self.load_file(filename)
                 }
                 
+                # if send message failed because of broken connection return
                 if self.send_message(message) == False: break
                 continue
                 
             # message to be send to the server
             message = {
                     "message_type": "basic",
-                    "message": user_input
+                    "message": message
                 }
             
+            # if send message failed because of broken connection return
             if self.send_message(message) == False: break
-        
-        self.shutdown_client = True
             
     
     def load_file(self, filename: str) -> bytes:
