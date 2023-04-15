@@ -50,6 +50,8 @@ class SenderReceiver:
         """
         Reference for fix to get send of large files working well using chunks
         https://enzircle.com/handling-message-boundaries-in-socket-programming
+        
+        Returns None if an error occured at some point, close connection if so.
 
         Args:
             conn_socket (socket): _description_

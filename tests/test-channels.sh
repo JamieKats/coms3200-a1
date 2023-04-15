@@ -8,10 +8,11 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 4 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
+timeout 6 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
 timeout 5 bash -c "{ sleep 1; echo 'Hi Nobody' | $(./decide.sh $1 client) 2345 Terry; }" > client-capture-A &
 timeout 5 bash -c "{ sleep 2; echo 'Hi Eric' | $(./decide.sh $1 client) 1234 Henry; }" > client-capture-B   &
-timeout 5 bash -c "{ sleep 3; echo 'Hi Henry' | $(./decide.sh $1 client) 1234 Eric; }" > client-capture-C   ;
+timeout 5 bash -c "{ sleep 3; echo 'Hi Henry' | $(./decide.sh $1 client) 1234 Eric; }" > client-capture-C   &
+sleep 6.1;
 
 echo -e "Terry has joined the channel2 channel.\nHenry has joined the channel1 channel.\nEric has joined the channel1 channel.\nHi Nobody\nHi Eric\nHi Henry" > server-capture-compare;
 echo -e "Welcome to the channel2 channel, Terry.\nTerry has joined the channel.\nHi Nobody" > client-capture-compare-A;
@@ -62,4 +63,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;

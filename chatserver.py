@@ -68,10 +68,12 @@ QUESTIONS
     but nothing is specified for how we handle this case when the client is starting up for the first time
     - max size of messages sent??
     
-    NOTES FOR JAMIE
+    NOTES FOR JAMIE 15/4/23
     - when client exits early (crashes) server crashes because it tries to close pipes for 
     the client that has already died
     - in readme specify that channel is refering to the collection of chat lobby and queue
+    - need to handle client having msg piped into client instance immediately,
+    therefore need to wait for server connection before actuually taking in input
 """
 import socket
 import threading
@@ -141,7 +143,7 @@ class ChatServer:
             channel.shutdown()
         
         # exit process
-        time.sleep(1) # TODO tmp sleep aded before exit to allow daemon threads to throw exceptions to fix
+        # time.sleep(1) # TODO tmp sleep aded before exit to allow daemon threads to throw exceptions to fix
         exit(0)
         
         
@@ -326,7 +328,7 @@ class ChatServer:
                 'message': f"[Server message ({get_time()})] Cannot connect to the {channel.name} channel."
             }
             client.send_message(message)
-            client.shutdown()
+            client.shutdown(graceful_shutdown=True)
             return
 
         # add client to channel queue
@@ -336,12 +338,18 @@ class ChatServer:
         while True:
             try:
                 message = client.receive_message()
-            except ConnectionResetError as e:
-                print(f"Returning early from client_listener_thread: {e}", flush=True) # TODO
+            except ConnectionResetError:
+                channel.close_client(username=client.name, graceful_shutdown=False)
+                # channel.remove_client_from_channel(client.name)
+                # client.shutdown()
                 return
             
-            # None message indicated client socket is closed
-            if message is None: return
+            # None message indicated client socket is closed, remove client
+            if message is None:
+                channel.close_client(username=client.name, graceful_shutdown=False)
+                # channel.remove_client_from_channel(client.name)
+                # client.shutdown()
+                return
             
             # if message first word is a valid command edit message metadata
             first_word = message["message"].split(" ")[0]
@@ -540,15 +548,18 @@ class ChatServer:
         message = {
             "message_type": "basic",
         }
+        channel: Channel
         for channel in channels.values():
+            client: ServerClient
             for client in channel.chat_room:
                 # ignore muted clients
                 if client.is_muted(): continue
                 
                 # remove clients that have exceeded the inacitvity limit
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    channel.remove_client_from_channel(client.name)
-                    client.shutdown()
+                    channel.close_client(username=client.name, graceful_shutdown=True)
+                    # channel.remove_client_from_channel(client.name)
+                    # client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
                     channel.send_message(message)
@@ -560,8 +571,9 @@ class ChatServer:
                 
                 # remove clients that have exceeded the inacitvity limit
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    channel.remove_client_from_channel(client.name)
-                    client.shutdown()
+                    channel.close_client(username=client.name, graceful_shutdown=True)
+                    # channel.remove_client_from_channel(client.name)
+                    # client.shutdown()
                     
                     message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
                     channel.send_message(message)
@@ -655,7 +667,7 @@ class ChatServer:
                 "message": formated_whisper,
                 "receiver": whisper_target
             }
-        target_channel.send_message(message, message["receiver"])
+        target_channel.send_message_clients_in_channel(message, message["receiver"])
         
         # print server whisper message
         server_msg = f"[{received_message['sender']} whispers to {whisper_target}: ({get_time()})] {whisper_message}"
@@ -673,7 +685,7 @@ class ChatServer:
             received_message (dict): message metadata from the sender.
         """
         channel: Channel = message["channel"]
-        channel.close_client(message["sender"])
+        channel.close_client(username=message["sender"], graceful_shutdown=True)
         
         
     def list(self, message: dict) -> None:
@@ -770,25 +782,25 @@ class ChatServer:
         # the target client is not in the senders channel
         if channel.client_in_channel(target_client) == False:
             reply_message["message"] = f"[Server message ({get_time()})] {target_client} is not here."
-            channel.send_message(reply_message, message["sender"])
+            channel.send_message_clients_in_channel(reply_message, message["sender"])
             return
         
         # the file path does not exist
         if message["file"] == b'':
             reply_message["message"] = f"[Server message ({get_time()})] {file_path} does not exist."
-            channel.send_message(reply_message, message["sender"])
+            channel.send_message_clients_in_channel(reply_message, message["sender"])
             return
 
         # send success message to sender        
         reply_message["message"] = f"[Server message ({get_time()})] You sent {file_path} to {target_client}."
-        channel.send_message(reply_message, message["sender"])
+        channel.send_message_clients_in_channel(reply_message, message["sender"])
         
         # print server message
         print(f"[Server message ({get_time()})] {message['sender']} sent {file_path} to {target_client}.", flush=True)
         
         # send msg with file
         del message["channel"] # remove "channel" key so json dumps doesnt fail
-        channel.send_message(message, target_client)
+        channel.send_message_clients_in_channel(message, target_client)
         
     
     def handle_server_command(self, message: dict) -> None:
@@ -832,15 +844,17 @@ class ChatServer:
             print(f"[Server message ({get_time()})] {username} is not in {channel_name}.", flush=True)
             return
 
-        # close connection with client        
-        client: ServerClient = channel.get_client_in_channel(username)
-        channel.remove_client_from_channel(username)
-        client.shutdown()
+        # close connection with client
+        channel.close_client(username=username, graceful_shutdown=True)
+        # client: ServerClient = channel.get_client_in_channel(username)
+        # channel.remove_client_from_channel(username)
+        # client.shutdown()
+        
         message = {
             "message_type": "basic",
             "message": f"[Server message ({get_time()})] {username} has left the channel."
         }
-        channel.send_message(message)
+        channel.send_message_clients_in_channel(message)
 
         # print server message        
         print(f"[Server message ({get_time()})] Kicked {username}.", flush=True)
@@ -904,9 +918,10 @@ class ChatServer:
             return
 
         # close all clients connection in the chat lobby
+        client: ServerClient
         for client in channel.chat_room.copy():
             channel.remove_client_from_channel(client.name)
-            client.shutdown()
+            client.shutdown(graceful_shutdown=True)
             
         print(f"[Server message ({get_time()})] {channel_name} has been emptied.", flush=True)
     

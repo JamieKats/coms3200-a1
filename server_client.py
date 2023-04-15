@@ -69,9 +69,15 @@ class ServerClient:
         return SenderReceiver.receive_message(self.conn_socket)
 
 
-    def shutdown(self) -> None:
+    def shutdown(self, graceful_shutdown: bool) -> None:
         """
-        Shuts down the client gracefully.
+        Shuts down the client.
+        
+        If graceful_shutdown is true the client is sent a message to allow them
+        to shutdown gracefully.
+        
+        If graceful_shutdown is false the client connection is simply closed
+        without warning the client on the other end
         
         A shutdown message is sent to the client then the socket is closed.
         
@@ -80,19 +86,26 @@ class ServerClient:
         https://stackoverflow.com/questions/409783/socket-shutdown-vs-socket-close 
         (accessed March 29, 2023).
         """
-        # craft and send shutdown message to client
-        shutdown_msg = {
-            "message_type": "command",
-            "command": "/shutdown"
-        }
-        self.send_message(shutdown_msg)
+        if graceful_shutdown == True:
+            # craft and send shutdown message to client
+            shutdown_msg = {
+                "message_type": "command",
+                "command": "/shutdown"
+            }
+            self.send_message(shutdown_msg)
         
         # close socket
+        self.close_connection()
+        
+        
+    def close_connection(self) -> None:
+        """
+        Closes connection to client not gracefully.
+        """
         try:
             self.conn_socket.shutdown(socket.SHUT_RDWR)
             self.conn_socket.close()
         except OSError as e:
-            print(f"OSError: Client connection may have already been closed: {e}", flush=True) # TODO
             pass
             
             
@@ -119,4 +132,5 @@ class ServerClient:
             self.conn_socket.shutdown(socket.SHUT_RDWR)
             self.conn_socket.close()
         except OSError as e:
-            print(f"OSError: Client connection may have already been closed: {e}", flush=True) # TODO
+            # print(f"OSError: Client connection may have already been closed: {e}", flush=True) # TODO
+            return

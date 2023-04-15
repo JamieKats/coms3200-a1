@@ -76,7 +76,7 @@ class Channel:
             "message_type": 'basic',
             'message': join_message
         }
-        self.send_message(message)
+        self.send_message_clients_in_channel(message)
         
         # print user joined message to servers stdout
         server_msg = f"[Server message ({get_time()})] {user.name} has joined"\
@@ -105,7 +105,7 @@ class Channel:
             return
         
         
-    def send_message(self, message: dict, username:str = None) -> None:
+    def send_message_clients_in_channel(self, message: dict, username:str = None) -> None:
         """
         Sends the message to all users in the channel if user=None,
         otherwise the message is sent only to the user specified.
@@ -223,7 +223,7 @@ class Channel:
         return False
     
     
-    def close_client(self, username: str) -> None:
+    def close_client(self, username: str, graceful_shutdown: bool) -> None:
         """
         Sends the client a shutdown command before closing threads and 
         connections for client.
@@ -243,9 +243,10 @@ class Channel:
             "message_type": "basic",
             "message": f"[Server message ({get_time()})] {username} has left the channel."
         }
-        
-        self.send_message(message)
+
+        # send client leaving message to everyone in channel and print for server        
+        self.send_message_clients_in_channel(message)
         print(message["message"], flush=True)
         
         # shutdown client
-        client.shutdown()
+        client.shutdown(graceful_shutdown=graceful_shutdown)

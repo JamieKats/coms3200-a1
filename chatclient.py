@@ -44,7 +44,7 @@ class ChatClient:
         
         # start daemon thread to handle user input
         input_thread = threading.Thread(
-            target=self.input_thread,
+            target=self.client_input_thread,
             daemon=True)
         input_thread.start()
         
@@ -61,7 +61,7 @@ class ChatClient:
         try:
             self.client_socket.connect((SERVER_HOST, self.server_port))
         except ConnectionRefusedError as e:
-            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
+            # print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
             exit(1)
         
         
@@ -82,7 +82,7 @@ class ChatClient:
             receiver_thread.start()
             receiver_thread.join()
             
-        self.shutdown_queue.get(block=True)
+        # self.shutdown_queue.get(block=True)
         self.shutdown()
         
     
@@ -94,7 +94,7 @@ class ChatClient:
         self.client_socket.close()
         
         
-    def input_thread(self):
+    def client_input_thread(self):
         """
         Handles processing command line input from the user.
         
@@ -104,8 +104,8 @@ class ChatClient:
             try:
                 user_input = input().strip()
             except EOFError:
-                # return
-                continue
+                return
+                # continue
             
             # if '/send' command used the file needs to be sent in the message
             first_word = user_input.split(" ")[0]
@@ -118,7 +118,7 @@ class ChatClient:
                     "file": self.load_file(filename)
                 }
                 
-                self.send_message(message)
+                if self.send_message(message) == False: break
                 continue
                 
             # message to be send to the server
@@ -127,7 +127,9 @@ class ChatClient:
                     "message": user_input
                 }
             
-            self.send_message(message)
+            if self.send_message(message) == False: break
+        
+        self.shutdown_client = True
             
     
     def load_file(self, filename: str) -> bytes:
@@ -175,12 +177,13 @@ class ChatClient:
             message (dict): dictionary containing the message information and 
             metadata to be sent
         """
-        if SenderReceiver.send_message(message, self.client_socket) == True:
-            return
+        # if SenderReceiver.send_message(message, self.client_socket) == True:
+        #     return
         
-        # if send_message returned false the server must be closed, so shutdown 
-        # client
-        self.shutdown()
+        # # if send_message returned false the server must be closed, so shutdown 
+        # # client
+        # self.shutdown()
+        return SenderReceiver.send_message(message, self.client_socket)
         
         
     def receiver_thread(self) -> None:
