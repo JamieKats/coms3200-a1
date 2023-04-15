@@ -26,6 +26,7 @@ class SenderReceiver:
         encoded_message_len = len(encoded_message)
         encoded_message_len = f"{encoded_message_len:0{TCP_MSG_LENGTH_DIGITS}d}".encode()
 
+        
         conn_socket.sendall(encoded_message_len)
         conn_socket.sendall(encoded_message)
         

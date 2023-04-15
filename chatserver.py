@@ -192,6 +192,9 @@ class ChatServer:
         lines = file.read().splitlines()
         for line in lines:
             config_options = line.split(" ")
+            
+            if len(config_options) != 4: exit(1)
+            
             name = config_options[1]
             
             try:

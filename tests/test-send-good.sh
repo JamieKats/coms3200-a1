@@ -6,7 +6,7 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=1;
+DEBUG=0;
 rm ./testtmp/AsFile.txt 2> /dev/null;
 rmdir ./testtmp 2> /dev/null;
 
