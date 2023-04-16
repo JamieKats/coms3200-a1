@@ -9,15 +9,15 @@ chan3port=$[45000 + $RANDOM % 15000]
 DEBUG=1;
 echo -en "channel channel1 $chan1port 5\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Liam; }" > client-capture-A &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Lachlan; }" > /dev/null &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Abraham; }" > /dev/null &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Graham; }" > /dev/null &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Harald; }" > /dev/null &
-timeout 1 bash -c "{ (sleep 0.5; echo '/quit') | $(./decide.sh $1 client) 1$chan1port251 Eleanor; }" > client-capture-B &
-timeout 1 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Ryan; }" > client-capture-C &
-sleep 2.5;
+timeout 7 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.2; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Liam; }" > client-capture-A &
+sleep 0.25; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Lachlan; }" > /dev/null &
+sleep 0.3; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Abraham; }" > /dev/null &
+sleep 0.35; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Graham; }" > /dev/null &
+sleep 0.4; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Harald; }" > /dev/null &
+sleep 0.45; timeout 3.5 bash -c "{ (sleep 0.2; echo '/quit') | $(./decide.sh $1 client) $chan1port Eleanor; }" > client-capture-B &
+sleep 0.5; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Ryan; }" > client-capture-C &
+sleep 7.1;
 
 echo -e "Liam has joined the channel1 channel.\nLachlan has joined the channel1 channel.\nAbraham has joined the channel1 channel.\nGraham has joined the channel1 channel.\nHarald has joined the channel1 channel.\nEleanor has left the channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Liam.\nLiam has joined the channel.\nLachlan has joined the channel.\nAbraham has joined the channel.\nGraham has joined the channel.\nHarald has joined the channel." > client-capture-compare-A;
@@ -63,4 +63,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-rm goodconf *capture* 2> /dev/null;
+#rm goodconf *capture* 2> /dev/null;

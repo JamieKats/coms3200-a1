@@ -2,17 +2,19 @@
 
 rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;
 
+DEBUG=1;
+
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 6 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
-timeout 5 bash -c "{ sleep 1; echo 'Hi Nobody' | $(./decide.sh $1 client) 2345 Terry; }" > client-capture-A &
-timeout 5 bash -c "{ sleep 2; echo 'Hi Eric' | $(./decide.sh $1 client) 1234 Henry; }" > client-capture-B   &
-timeout 5 bash -c "{ sleep 3; echo 'Hi Henry' | $(./decide.sh $1 client) 1234 Eric; }" > client-capture-C   &
-sleep 6.1;
+timeout 5.2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
+sleep 0.2; timeout 4.2 bash -c "{ (sleep 1; echo 'Hi Nobody') | $(./decide.sh $1 client) $chan2port Terry; }" > client-capture-A &
+sleep 0.3; timeout 4.2 bash -c "{ (sleep 1.2; echo 'Hi Eric') | $(./decide.sh $1 client) $chan1port Henry; }" > client-capture-B   &
+sleep 0.4; timeout 4.2 bash -c "{ (sleep 1.4; echo 'Hi Henry') | $(./decide.sh $1 client) $chan1port Eric; }" > client-capture-C   
+sleep 5.3;
 
 echo -e "Terry has joined the channel2 channel.\nHenry has joined the channel1 channel.\nEric has joined the channel1 channel.\nHi Nobody\nHi Eric\nHi Henry" > server-capture-compare;
 echo -e "Welcome to the channel2 channel, Terry.\nTerry has joined the channel.\nHi Nobody" > client-capture-compare-A;
@@ -48,15 +50,15 @@ then
     then
         echo -e "Client A";
         echo -e "--------";
-        echo -e "$(diff client-capture-A-messages client-capture-compare-A)" 2>/dev/null;
+        echo -e "$(diff client-capture-A-1 client-capture-compare-A)" 2>/dev/null;
         echo -e "--------";
         echo -e "Client B"
         echo -e "--------";
-        echo -e "$(diff client-capture-B-messages client-capture-compare-B)"  2>/dev/null;
+        echo -e "$(diff client-capture-B-1 client-capture-compare-B)"  2>/dev/null;
         echo -e "--------";
         echo -e "Client C";
         echo -e "--------";
-        echo -e "$(diff client-capture-C-messages client-capture-compare-C)"  2>/dev/null;
+        echo -e "$(diff client-capture-C-1 client-capture-compare-C)"  2>/dev/null;
         echo -e "--------";
     fi
 else

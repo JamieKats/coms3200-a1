@@ -1,0 +1,17 @@
+chatclient connect_to_server port: 16580
+[Server message
+[Server message
+[Server message
+[Server message
+[Server message
+[Server message
+/list
+[Channel] channel1 5/5/2.
+[Channel] channel2 2/10/0.
+[Channel] channel3 0/10/0.
+[Server message
+[Server message
+/list
+[Channel] channel1 4/5/0.
+[Channel] channel2 2/10/0.
+[Channel] channel3 0/10/0.

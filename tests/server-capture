@@ -1,0 +1,12 @@
+chatserver create_channels: port 16580
+chatserver create_channels: port 24162
+chatserver create_channels: port 50196
+[Server message (15:38:33)] Dan has joined the channel1 channel.
+[Server message (15:38:33)] Phil1 has joined the channel1 channel.
+[Server message (15:38:34)] Phil2 has joined the channel1 channel.
+[Server message (15:38:34)] Phil3 has joined the channel1 channel.
+[Server message (15:38:35)] Phil4 has joined the channel1 channel.
+[Server message (15:38:38)] Phil7 has joined the channel2 channel.
+[Server message (15:38:38)] Phil8 has joined the channel2 channel.
+[Server message (15:38:39)] Phil5 has joined the channel1 channel.
+[Server message (15:38:40)] Phil6 has joined the channel1 channel.

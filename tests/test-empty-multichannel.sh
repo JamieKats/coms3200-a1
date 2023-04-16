@@ -10,11 +10,11 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2 bash -c "{ (sleep 0.75; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
-timeout 2 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
-timeout 2 bash -c "{ (sleep 0.5;) | $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
-sleep 2.1;
+timeout 2.1 bash -c "{ (sleep 1.3; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
+sleep 0.2; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
+sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
+sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
+sleep 2.2;
 
 echo -e "EmptyFour has joined the channel2 channel.\nEmptyFive has joined the channel1 channel.\nEmptySix has joined the channel1 channel." > server-capture-compare-messages;
 echo -e "Welcome to the channel2 channel, EmptyFour.\nEmptyFour has joined the channel." > client-capture-compare-A;
@@ -72,4 +72,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-rm goodconf *capture* 2> /dev/null;
+#rm goodconf *capture* 2> /dev/null;

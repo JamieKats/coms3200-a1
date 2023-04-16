@@ -9,7 +9,7 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > good
 
-timeout 0.1 $CMD;
+timeout 0.3 $CMD;
 if [[ $? -ne 1 ]]
 then
     echo -en "\033[0;31mServer did not exit correctly.";

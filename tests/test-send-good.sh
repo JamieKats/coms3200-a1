@@ -15,10 +15,10 @@ echo -e "testing send!" >> ./testtmp/AsFile.txt;
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 1.1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1 bash -c "{ (sleep 0.5; ) | $(./decide.sh $1 client) $chan1port ReceiverOne; }" > client-capture-A &
-timeout 1 bash -c "{ (sleep 0.75; echo -e '/send ReceiverOne ./testtmp/AsFile.txt' ) | $(./decide.sh $1 client) $chan1port SenderOne; }" > client-capture-B &
-sleep 1.2;
+timeout 3.1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.2; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan1port ReceiverOne; }" > client-capture-A &
+sleep 0.3; timeout 2 bash -c "{ (sleep 0.75; echo -e '/send ReceiverOne ./testtmp/AsFile.txt' ) | $(./decide.sh $1 client) $chan1port SenderOne; }" > client-capture-B &
+sleep 3.2;
 
 echo -e "ReceiverOne has joined the channel1 channel.\nSenderOne has joined the channel1 channel.\nSenderOne sent ./testtmp/AsFile.txt to ReceiverOne." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, ReceiverOne.\nReceiverOne has joined the channel.\nSenderOne has joined the channel." > client-capture-compare-A;
@@ -80,4 +80,4 @@ rm ./AsFile.txt         2> /dev/null;
 rm ./testtmp/AsFile.txt         2> /dev/null;
 rmdir ./testtmp                 2> /dev/null;
 
-rm testtmp goodconf *capture*   2> /dev/null;
+#rm testtmp goodconf *capture*   2> /dev/null;

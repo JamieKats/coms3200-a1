@@ -16,7 +16,7 @@ class Channel:
         self.capacity: int = capacity
         self.chat_room: list = []
         self.client_queue: ClientQueue = ClientQueue()
-        self.conn_socket = conn_socket
+        self.conn_socket: socket.socket = conn_socket
         # self.lock = threading.Lock()
         
         
@@ -135,11 +135,12 @@ class Channel:
         close sockets
         """
         # close client connections
+        client: ServerClient
         for client in self.client_queue:
-            client.shutdown()
+            client.shutdown(graceful_shutdown=True)
         
         for client in self.chat_room:
-            client.shutdown()
+            client.shutdown(graceful_shutdown=True)
             
         # close the channel socket
         self.conn_socket.shutdown(socket.SHUT_RDWR)

@@ -10,10 +10,10 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf
 
-timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1.9 bash -c "{ sleep 1; $(./decide.sh $1 client) $chan1port Marcus; }" > client-capture &
+timeout 1.3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.1; timeout 1 bash -c "{ sleep 0.25; $(./decide.sh $1 client) $chan1port Marcus; }" > client-capture &
 # timeout 1.9 bash -c "{ sleep 1; $(./decide.sh $1 client) $chan1port Marcus; }" &
-sleep 2.1;
+sleep 1.4;
 
 echo "Marcus has joined the channel1 channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Marcus.\nMarcus has joined the channel." > client-capture-compare;
@@ -68,4 +68,4 @@ else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null

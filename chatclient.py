@@ -61,9 +61,10 @@ class ChatClient:
         """
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            print(f"chatclient connect_to_server port: {self.server_port}")
             self.client_socket.connect((SERVER_HOST, self.server_port))
         except ConnectionRefusedError as e:
-            # print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
+            print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
             exit(1)
         
         
@@ -75,7 +76,8 @@ class ChatClient:
             self.connect_to_server()
             
             # send client username on first connection
-            self.client_socket.send(json.dumps(self.client_settings).encode())
+            self.send_message(self.client_settings)
+            # self.client_socket.send(json.dumps(self.client_settings).encode())
             
             # start client command logic that will take messages on the incoming
             # stdin queue and send them to the server connection established 
@@ -153,6 +155,7 @@ class ChatClient:
         while True:
             # print("in client command thread")
             message = incoming_commands.get(block=True)
+            print(message, flush=True)
             
             # if '/send' command used the file needs to be sent in the message
             first_word = message.split(" ")[0]
@@ -230,6 +233,8 @@ class ChatClient:
         # # if send_message returned false the server must be closed, so shutdown 
         # # client
         # self.shutdown()
+        # print(message, flush=True)
+        # print(message["message"], flush=True)
         return SenderReceiver.send_message(message, self.client_socket)
         
         

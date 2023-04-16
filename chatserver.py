@@ -246,6 +246,7 @@ class ChatServer:
         for channel_name, channel_info in self.channel_configs.items():
             port = int(channel_info["port"])
             capacity = int(channel_info["capacity"])
+            print(f"chatserver create_channels: port {port}")
             
             # create channel socket and bind
             self.channel_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -418,17 +419,20 @@ class ChatServer:
         """
         while True:
             try:
+                # print(channel.conn_socket.getsockname()[1])
                 connection_socket, addr = channel.conn_socket.accept()
             except OSError:
                 return
-            
-            # receive first message from client with clients username
-            client_settings = connection_socket.recv(MSG_BUFFER_SIZE).decode()
-            client_settings = json.loads(client_settings)
-            client = ServerClient(
-                name=client_settings["username"],
+            # create client with name=None then fill out later
+            client: ServerClient = ServerClient(
+                name=None,
                 conn_socket=connection_socket,
                 addr=addr)
+            
+            # receive first message from client with clients username
+            client_settings = client.receive_message()
+            
+            client.name = client_settings["username"]
             
             # create listener thread for new user
             client_listener_thread = threading.Thread(
@@ -760,7 +764,7 @@ class ChatServer:
             "message": f"[Server message ({get_time()})] {sender_username} has left the channel."
         }
         
-        self.send_message(message)
+        sender.send_message(message)
         print(message["message"], flush=True)
         
         # send client msg to close socket and reconnect on new port then close 

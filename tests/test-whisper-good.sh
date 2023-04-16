@@ -9,11 +9,11 @@ chan3port=$[45000 + $RANDOM % 15000]
 DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-timeout 1.5 bash -c "{ (sleep 0.5; echo '/whisper Matthew Hi Matthew') | $(./decide.sh $1 client) $chan1port Austin; }" > client-capture-A &
-timeout 1.5 bash -c "{ (sleep 1; echo '/whisper Austin Hi Austin') | $(./decide.sh $1 client) $chan1port Matthew; }" > client-capture-B &
-timeout 1.5 bash -c "{ sleep 0.15; $(./decide.sh $1 client) $chan1port Arnold; }" > client-capture-C &
-sleep 2.1;
+timeout 3.5 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.2; timeout 2.2 bash -c "{ (sleep 1.2; echo '/whisper Matthew Hi Matthew') | $(./decide.sh $1 client) $chan1port Austin; }" > client-capture-A &
+sleep 0.3; timeout 2.2 bash -c "{ (sleep 1.2; echo '/whisper Austin Hi Austin') | $(./decide.sh $1 client) $chan1port Matthew; }" > client-capture-B &
+sleep 0.4; timeout 2.2 bash -c "{ $(./decide.sh $1 client) $chan1port Arnold; }" > client-capture-C &
+sleep 3.6;
 
 echo -e "Austin has joined the channel1 channel.\nMatthew has joined the channel1 channel.\nArnold has joined the channel1 channel.\nHi Matthew\nHi Austin" > server-capture-compare-messages;
 echo -e "[Server message\n[Server message\n[Server message\n[Austin whispers to Matthew:\n[Matthew whispers to Austin:" > server-capture-compare-names;
@@ -74,12 +74,11 @@ then
         echo -e "--------";
         echo -e "Client C";
         echo -e "--------";
-        echo -e "$(diff client-capture-C-names client-capture-compare-C-names)"  2>/dev/null;
-        echo -e "$(diff client-capture-C-messages client-capture-compare-C-messages)"  2>/dev/null;
+        echo -e "$(diff client-capture-C-messages client-capture-compare-C)"  2>/dev/null;
         echo -e "--------";
     fi
 else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-rm goodconf *capture* 2> /dev/null;
+#rm goodconf *capture* 2> /dev/null;
