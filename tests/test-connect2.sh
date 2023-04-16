@@ -6,25 +6,21 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=1;
+DEBUG=0;
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
-sleep 0.1; timeout 1.5 bash -c "{ (sleep 0.25; echo -e 'Hi Tom') | $(./decide.sh $1 client) $chan1port Arthur; }" > client-capture-A &
-sleep 0.15; timeout 1.5 bash -c "{ (sleep 0.5; echo -e 'Hi Arthur') | $(./decide.sh $1 client) $chan1port Tom; }" > client-capture-B  &
-sleep 2.1;
+timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
+sleep 0.3; timeout 2 bash -c "{ (sleep 0.8; echo -e 'Hi Tom') | $(./decide.sh $1 client) $chan1port Arthur; }" > client-capture-A &
+sleep 0.4; timeout 2 bash -c "{ (sleep 0.9; echo -e 'Hi Arthur') | $(./decide.sh $1 client) $chan1port Tom; }" > client-capture-B  &
+sleep 3.1;
 
-# cat server-capture;
-# cat client-capture-A;
-
-echo -e "Arthur has joined the channel1 channel.\nTom has joined the channel.\nHi Tom\nHi Arthur" > server-capture-compare;
+echo -e "Arthur has joined the channel1 channel.\nTom has joined the channel1 channel.\nHi Tom\nHi Arthur" > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Arthur.\nArthur has joined the channel.\nTom has joined the channel.\nHi Tom\nHi Arthur" > client-capture-compare-A;
 echo -e "Welcome to the channel1 channel, Tom.\nTom has joined the channel.\nHi Tom\nHi Arthur" > client-capture-compare-B;
 
 echo -e "[Arthur\n[Tom" > names-compare;
 
-# awk -F '] ' '{ print $2 }' server-capture;
 awk -F '] ' '{ print $2 }' server-capture > server-capture-1;
 awk -F '] ' '{ print $2 }' client-capture-A > client-capture-A-1;
 awk -F '] ' '{ print $2 }' client-capture-B > client-capture-B-1;

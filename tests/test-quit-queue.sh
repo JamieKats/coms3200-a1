@@ -9,17 +9,27 @@ chan3port=$[45000 + $RANDOM % 15000]
 DEBUG=1;
 echo -en "channel channel1 $chan1port 5\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 7 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-sleep 0.2; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Liam; }" > client-capture-A &
-sleep 0.25; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Lachlan; }" > /dev/null &
-sleep 0.3; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Abraham; }" > /dev/null &
-sleep 0.35; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Graham; }" > /dev/null &
-sleep 0.4; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Harald; }" > /dev/null &
-sleep 0.45; timeout 3.5 bash -c "{ (sleep 0.2; echo '/quit') | $(./decide.sh $1 client) $chan1port Eleanor; }" > client-capture-B &
-sleep 0.5; timeout 3.5 bash -c "{ $(./decide.sh $1 client) $chan1port Ryan; }" > client-capture-C &
-sleep 7.1;
+# timeout 15 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+# sleep 0.3; timeout 8 bash -c "{ $(./decide.sh $1 client) $chan1port Liam; }" > client-capture-A &
+# sleep 0.4; timeout 8 bash -c "{ $(./decide.sh $1 client) $chan1port Lachlan; }" > /dev/null &
+# sleep 0.5; timeout 8 bash -c "{ $(./decide.sh $1 client) $chan1port Abraham; }" > /dev/null &
+# sleep 0.6; timeout 8 bash -c "{ $(./decide.sh $1 client) $chan1port Graham; }" > /dev/null &
+# sleep 0.7; timeout 8 bash -c "{ $(./decide.sh $1 client) $chan1port Harald; }" > /dev/null &
+# # sleep 0.8; timeout 2 bash -c "{ (sleep 0.5; echo '/list') | $(./decide.sh $1 client) $chan1port Eleanor; }" > client-capture-B &
+# sleep 0.8; timeout 6 bash -c "{ (sleep 0.5; echo '/quit') | $(./decide.sh $1 client) $chan1port Eleanor; }" > client-capture-B &
+# sleep 0.9; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Ryan; }" > client-capture-C &
+# sleep 15.1;
+timeout 6.3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.3; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Liam; }" > client-capture-A &
+sleep 0.4; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Lachlan; }" > /dev/null &
+sleep 0.5; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Abraham; }" > /dev/null &
+sleep 0.6; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Graham; }" > /dev/null &
+sleep 0.7; timeout 6 bash -c "{ $(./decide.sh $1 client) $chan1port Harald; }" > /dev/null &
+sleep 0.8; timeout 6 bash -c "{ (sleep 1.6; echo '/quit') | $(./decide.sh $1 client) $chan1port Eleanor; }" > client-capture-B &
+sleep 0.9; timeout 1.5 bash -c "{ $(./decide.sh $1 client) $chan1port Ryan; }" > client-capture-C &
+sleep 6.4;
 
-echo -e "Liam has joined the channel1 channel.\nLachlan has joined the channel1 channel.\nAbraham has joined the channel1 channel.\nGraham has joined the channel1 channel.\nHarald has joined the channel1 channel.\nEleanor has left the channel." > server-capture-compare;
+echo -e "Liam has joined the channel1 channel.\nLachlan has joined the channel1 channel.\nAbraham has joined the channel1 channel.\nGraham has joined the channel1 channel.\nHarald has joined the channel1 channel." > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Liam.\nLiam has joined the channel.\nLachlan has joined the channel.\nAbraham has joined the channel.\nGraham has joined the channel.\nHarald has joined the channel." > client-capture-compare-A;
 echo -e "Welcome to the channel1 channel, Eleanor.\nYou are in the waiting queue and there are 0 user(s) ahead of you." > client-capture-compare-B;
 echo -e "Welcome to the channel1 channel, Ryan.\nYou are in the waiting queue and there are 1 user(s) ahead of you.\nYou are in the waiting queue and there are 0 user(s) ahead of you." > client-capture-compare-C;

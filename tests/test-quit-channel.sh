@@ -9,8 +9,8 @@ chan3port=$[45000 + $RANDOM % 15000]
 DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2.2 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-sleep 0.2; timeout 1.2 bash -c "{ (sleep 0.6; echo 'Hi'; sleep 0.2; echo '/quit') | $(./decide.sh $1 client) $chan1port Gordon; }" > client-capture-A &
+timeout 2.1 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.2; timeout 1.35 bash -c "{ (sleep 0.6; echo 'Hi'; sleep 0.2; echo '/quit') | $(./decide.sh $1 client) $chan1port Gordon; }" > client-capture-A &
 sleep 0.25; timeout 1.5 bash -c "{ (sleep 0.8; echo 'You will not receive this') | $(./decide.sh $1 client) $chan1port Amos; }" > client-capture-B &
 sleep 2.2;
 

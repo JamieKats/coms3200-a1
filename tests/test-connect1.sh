@@ -2,7 +2,7 @@
 
 rm goodconf *capture* 2> /dev/null
 
-DEBUG=1;
+DEBUG=0;
 
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
@@ -11,8 +11,7 @@ chan3port=$[45000 + $RANDOM % 15000]
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf
 
 timeout 1.3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
-sleep 0.1; timeout 1 bash -c "{ sleep 0.25; $(./decide.sh $1 client) $chan1port Marcus; }" > client-capture &
-# timeout 1.9 bash -c "{ sleep 1; $(./decide.sh $1 client) $chan1port Marcus; }" &
+sleep 0.2; timeout 1 bash -c "{ sleep 0.25; $(./decide.sh $1 client) $chan1port Marcus; }" > client-capture &
 sleep 1.4;
 
 echo "Marcus has joined the channel1 channel." > server-capture-compare;
@@ -51,7 +50,7 @@ then
     echo -e "\033[0;31mServer stdout does not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
-        echo -e $(diff server-capture-1 server-capture-compare);
+        echo -e $(diff server-capture-1 server-capture-compare) 2>/dev/null;
     fi
 else
     echo -e "\033[0;32mServer stdout matches expected.\033[0m";
@@ -62,10 +61,10 @@ then
     echo -e "\033[0;31mClient stdout does not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
-        echo -e $(diff server-capture-1 server-capture-compare);
+        echo -e $(diff server-capture-1 server-capture-compare) 2>/dev/null;
     fi
 else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";
 fi
 
-#rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
+rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null

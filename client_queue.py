@@ -4,7 +4,7 @@ from server_client import ServerClient
 
 class ClientQueue(list):
     """
-    A thread safe FIFO queue to store clients in that allows removal at any 
+    A thread safe FIFO queune to store clients in that allows removal at any 
     point in the queue.
     """
     def __init__(self) -> None:
@@ -12,7 +12,7 @@ class ClientQueue(list):
         self.lock: threading.Lock = threading.Lock()
         
         
-    def put(self, client: ServerClient, channel_name: str) -> None:
+    def put(self, client: ServerClient, channel_name: str, spaces_in_chat_room: int) -> None:
         """
         Adds the client to the end of the queue in a threadsafe way.
 
@@ -30,6 +30,16 @@ class ClientQueue(list):
             'message': welcome_msg
         }
         client.send_message(message)
+        
+        # if there are no spaces in the chat room send the queue position message
+        if spaces_in_chat_room == 0:
+            queue_message = {
+                'message_type': 'basic',
+                'message': f"[Server message ({get_time()})] You are in the "
+                    + f"waiting queue and there are {len(self) - 1} user(s) ahead of you."
+            }
+            client.send_message(queue_message)
+            
         self.lock.release()
         
         

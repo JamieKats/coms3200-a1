@@ -10,11 +10,21 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 3 bash -c "{ (sleep 1.3; echo '/kick channel1:Joe') | $(./decide.sh $1 server) goodconf; }" > server-capture &
+socketchan1=$(mktemp)
+socketchan2=$(mktemp)
+
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
+
+timeout 4 bash -c "{ (sleep 1.3; echo '/kick channel1:Joe') | $(./decide.sh $1 server) goodconf; }" > server-capture &
 sleep 0.2; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan2port Joseph; }" > client-capture-A &
 sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port Glover; }" > client-capture-B &
 sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port Joe; }" > client-capture-C &
-sleep 3.1;
+sleep 0.6; bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan1port | wc -l) }" > "$socketchan1" &
+bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan2port | wc -l) }" > "$socketchan2" &
+sleep 4.1 & wait;
+
+export clientsocket1closed=$(<$socketchan1)
+export clientsocket2closed=$(<$socketchan2) 
 
 echo -e "Joseph has joined the channel2 channel.\nGlover has joined the channel1 channel.\nJoe has joined the channel1 channel.\nKicked Joe." > server-capture-compare-messages;
 echo -e "[Server message\n[Server message\n[Server message\n" > server-capture-compare-names;
@@ -33,7 +43,7 @@ clientmistakesam=$(diff client-capture-A-messages client-capture-compare-A | wc 
 clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc -l);
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port | wc -l);
+# clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];
@@ -54,8 +64,14 @@ then
     echo -e "\033[0;31mExpecting 1 client left in channel 1, either 0 or 2 clients were found connected to channel 1!\033[0m";
 else
     echo -e "\033[0;32m Correct number of clients left.\033[0m";
-fi  
+fi
 
+if [[ clientsocket2closed -ne 1 ]]
+then
+    echo -e "\033[0;31mExpecting 1 client left in channel 2, and there are none!\033[0m";
+else
+    echo -e "\033[0;32m Correct number of clients left.\033[0m";
+fi
 
 if [[ clientmistakestot -gt 0 ]]
 then

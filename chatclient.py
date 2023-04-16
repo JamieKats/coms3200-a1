@@ -61,7 +61,7 @@ class ChatClient:
         """
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            print(f"chatclient connect_to_server port: {self.server_port}")
+            # print(f"chatclient connect_to_server port: {self.server_port}")/
             self.client_socket.connect((SERVER_HOST, self.server_port))
         except ConnectionRefusedError as e:
             print(f"REMOVE WHEN DONE: server socket connection refused: {e}...", flush=True) # TODO
@@ -155,7 +155,7 @@ class ChatClient:
         while True:
             # print("in client command thread")
             message = incoming_commands.get(block=True)
-            print(message, flush=True)
+            # print(message, flush=True)
             
             # if '/send' command used the file needs to be sent in the message
             first_word = message.split(" ")[0]

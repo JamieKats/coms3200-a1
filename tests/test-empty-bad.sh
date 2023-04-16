@@ -2,7 +2,7 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=1;
+DEBUG=0;
 
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
@@ -11,7 +11,7 @@ chan3port=$[45000 + $RANDOM % 15000]
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 
-timeout 3 bash -c "{ (sleep 1.2; echo '/empty channel42') | $(./decide.sh $1 server) goodconf; }" > server-capture &
+timeout 3 bash -c "{ (sleep 1.3; echo '/empty channel42') | $(./decide.sh $1 server) goodconf; }" > server-capture &
 sleep 0.2; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyOne; }" > client-capture-A &
 sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyTwo; }" > client-capture-B &
 sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyThree; }" > client-capture-C &
@@ -54,4 +54,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;

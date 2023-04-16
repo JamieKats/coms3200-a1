@@ -10,13 +10,29 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2.1 bash -c "{ (sleep 1.3; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
-sleep 0.2; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
-sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
-sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
-sleep 2.2;
+# timeout 3 bash -c "{ (sleep 1.3; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
+# sleep 0.2; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
+# sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
+# sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
+# sleep 3.1;
+socketchan1=$(mktemp)
+socketchan2=$(mktemp)
 
-echo -e "EmptyFour has joined the channel2 channel.\nEmptyFive has joined the channel1 channel.\nEmptySix has joined the channel1 channel." > server-capture-compare-messages;
+echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
+timeout 3 bash -c "{ (sleep 1.6; echo '/empty channel1') | $(./decide.sh $1 server) goodconf; }" > server-capture & #Does this sleep need to be after ??
+sleep 0.3; timeout 2.2 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyFour; }" > client-capture-A &
+sleep 0.4; timeout 2.2 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyFive; }" > client-capture-B &
+sleep 0.5; timeout 2.2 bash -c "{ $(./decide.sh $1 client) $chan1port EmptySix; }" > client-capture-C &
+sleep 0.7; bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan1port | wc -l) }" > "$socketchan1" &
+bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan2port | wc -l) }" > "$socketchan2" &
+wait;
+export clientsocket1closed=$(<$socketchan1)
+export clientsocket2closed=$(<$socketchan2)
+echo -e "Chan 1 \n$clientsocket1closed\n" 
+echo -e "Chan 2 \n$clientsocket2closed\n" 
+
+
+echo -e "EmptyFour has joined the channel2 channel.\nEmptyFive has joined the channel1 channel.\nEmptySix has joined the channel1 channel.\nchannel1 has been emptied." > server-capture-compare-messages;
 echo -e "Welcome to the channel2 channel, EmptyFour.\nEmptyFour has joined the channel." > client-capture-compare-A;
 echo -e "Welcome to the channel1 channel, EmptyFive.\nEmptyFive has joined the channel.\nEmptySix has joined the channel." > client-capture-compare-B;
 echo -e "Welcome to the channel1 channel, EmptySix.\nEmptySix has joined the channel." > client-capture-compare-C;
@@ -32,8 +48,8 @@ clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc 
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
 
-clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port| wc -l);
-clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :$chan2port | wc -l);
+# clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port| wc -l);
+# clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :$chan2port | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];

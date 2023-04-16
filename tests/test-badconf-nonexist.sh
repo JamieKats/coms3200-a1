@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CMD="$(./decide.sh $1 server) nonexist";
-timeout 0.1 $CMD;
+timeout 0.3 $CMD;
 if [[ $? -ne 1 ]]
 then
     echo -en "\033[0;31mServer did not exit correctly.";

@@ -98,7 +98,7 @@ CONFIG_COMMAND = 1
 VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 VALID_SERVER_COMMANDS = ['/kick', '/mute', '/empty', '/shutdown']
 
-AFK_TIME_LIMIT = 100
+AFK_TIME_LIMIT = 100000 # TODO put back to 100
 
 
 class ChatServer:
@@ -246,7 +246,7 @@ class ChatServer:
         for channel_name, channel_info in self.channel_configs.items():
             port = int(channel_info["port"])
             capacity = int(channel_info["capacity"])
-            print(f"chatserver create_channels: port {port}")
+            # print(f"chatserver create_channels: port {port}")
             
             # create channel socket and bind
             self.channel_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -484,6 +484,8 @@ class ChatServer:
         client: ServerClient  = channel.get_client_in_channel(client_name)
         
         # reset AFK timer when client sends msg/cmd when not muted
+        # print(message)
+        # print(client)
         if client.is_muted() == False:
             client.time_last_active = time.time()
             
@@ -515,10 +517,8 @@ class ChatServer:
                 'message': formatted_msg
             }
             
-            # send message to everyone besides original sender in chat room
-            for user in channel.chat_room:
-                if user.name != client_name:
-                    user.send_message(server_msg)
+            # send message to everyone in chat room
+            channel.send_message_clients_in_channel(message=server_msg)
     
     
     def process_server_commands(self, server_command_queue: queue.Queue) -> None:
@@ -657,7 +657,8 @@ class ChatServer:
             
         args = received_message['args']
         whisper_target = args[0]
-        whisper_message = args[1]
+        # construct message from args
+        whisper_message = " ".join(args[1:])
         target_channel: Channel = received_message["channel"]
         
         # whisper target not in chat lobby
@@ -670,7 +671,7 @@ class ChatServer:
             }
         # whisper target is in chat lobby
         else:
-            formated_whisper = f"[{received_message['sender']} whispers to you: {get_time()}] {whisper_message}"
+            formated_whisper = f"[{received_message['sender']} whispers to you: ({get_time()})] {whisper_message}"
             message = {
                 "message_type": "basic",
                 "message": formated_whisper,

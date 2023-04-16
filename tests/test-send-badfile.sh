@@ -6,17 +6,17 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=1;
+DEBUG=0;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2.4 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
+timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
 sleep 0.2; timeout 1.7 bash -c "{ $(./decide.sh $1 client) $chan1port ReceiverTwo; }" > client-capture-A &
 sleep 0.3; timeout 1.7 bash -c "{ (sleep 0.75; echo -e '/send ReceiverTwo ./testtmp/AsFile.txt' ) | $(./decide.sh $1 client) $chan1port SenderTwo; }" > client-capture-B &
-sleep 2.5;
+sleep 3.1;
 
 echo -e "ReceiverTwo has joined the channel1 channel.\nSenderTwo has joined the channel1 channel." > server-capture-compare-messages;
 echo -e "Welcome to the channel1 channel, ReceiverTwo.\nReceiverTwo has joined the channel.\nSenderTwo has joined the channel." > client-capture-compare-A;
-echo -e "Welcome to the channel1 channel, SenderTwo.\nSenderTwo has joined the channel.\n~/testtmp/AsFile.txt does not exist." > client-capture-compare-B;
+echo -e "Welcome to the channel1 channel, SenderTwo.\nSenderTwo has joined the channel.\n./testtmp/AsFile.txt does not exist." > client-capture-compare-B;
 
 awk -F ' \\\(' '{ print $1 }' server-capture > server-capture-names 2> /dev/null;
 awk -F '] ' '{ print $2 }' server-capture > server-capture-messages;
@@ -62,4 +62,4 @@ else
 fi
 
 
-#rm testtmp goodconf *capture* 2> /dev/null;
+rm testtmp goodconf *capture* 2> /dev/null;

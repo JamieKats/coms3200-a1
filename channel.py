@@ -17,7 +17,7 @@ class Channel:
         self.chat_room: list = []
         self.client_queue: ClientQueue = ClientQueue()
         self.conn_socket: socket.socket = conn_socket
-        # self.lock = threading.Lock()
+        self.lock = threading.Lock()
         
         
     def add_client_to_queue(self, client: ServerClient) -> None:
@@ -32,8 +32,12 @@ class Channel:
         Args:
             client (ServerClient): the client to add to the queue
         """
-        self.client_queue.put(client, self.name)
+        self.lock.acquire()
         
+        spaces_in_chat_room = self.capacity - len(self.chat_room)
+        self.client_queue.put(client, self.name, spaces_in_chat_room)
+        
+        self.lock.release()
         # # send client welcome message            
         # welcome_msg = f"[Server message ({get_time()})] Welcome to the " \
         #     + f"{self.name} channel, {client.name}."
@@ -63,6 +67,8 @@ class Channel:
         """
         Moves the client from the waiting queue to the chat room.
         """
+        self.lock.acquire()
+        
         # if noone in wating queue return early
         if len(self.client_queue) == 0:
             return
@@ -84,6 +90,8 @@ class Channel:
         server_msg = f"[Server message ({get_time()})] {user.name} has joined"\
             + f" the {self.name} channel."
         print(server_msg, flush=True)
+        
+        self.lock.release()
         
     
     def remove_client_from_channel(self, username: str) -> None:
@@ -226,6 +234,29 @@ class Channel:
         return False
     
     
+    def where_is_client(self, username: str) -> str:
+        """
+        Returns the name of the location of the client. If the client is in the 
+        chat room "chatroom" is returned, if client in queue "queue" returned,
+        otherwise None returned
+
+        Args:
+            username (str): _description_
+
+        Returns:
+            bool: _description_
+        """
+        client_in_chat_room = self.get_client_in_chat_room(username)
+        if client_in_chat_room is not None:
+            return "chatroom"
+        
+        client_in_queue = self.get_client_in_queue(username)
+        if client_in_queue is not None:
+            return "queue"
+        
+        return None
+    
+    
     def close_client(self, username: str, graceful_shutdown: bool) -> None:
         """
         Sends the client a shutdown command before closing threads and 
@@ -238,7 +269,11 @@ class Channel:
         if client is None:
             return
         
-        # remove client from channel
+        # check if client in queue or chat room, if they are in queue, remove 
+        # them and dont send leaving message
+        client_loc = self.where_is_client(username)
+        # print(f"client is in {client_loc}")
+         
         self.remove_client_from_channel(username)
         
         # publish client leaving message to channel
@@ -249,7 +284,7 @@ class Channel:
 
         # send client leaving message to everyone in channel and print for server
         # only when client shutsdown_gracefully
-        if graceful_shutdown == True:        
+        if graceful_shutdown == True and client_loc == "chatroom":
             self.send_message_clients_in_channel(message)
             print(message["message"], flush=True)
         
