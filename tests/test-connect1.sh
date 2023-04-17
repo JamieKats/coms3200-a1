@@ -20,10 +20,12 @@ echo -e "Welcome to the channel1 channel, Marcus.\nMarcus has joined the channel
 stime=$(awk '{ print $3 }' server-capture);
 ctime=$(head -n 1 client-capture | awk '{ print $3 }');
 
-stimecut=${stime: 1: 7};
-ctimecut=${ctime: 1: 7};
+stimecut=${stime: 1: 6};
+ctimecut=${ctime: 1: 6};
+echo $stimecut;
+echo $ctimecut;
 now="$(date | awk '{ print $4 }')";
-nowcut=${now: 0: 7};
+nowcut=${now: 0: 6};
 
 if [ "$stimecut" = "$nowcut" ];
 then

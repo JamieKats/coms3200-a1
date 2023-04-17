@@ -294,9 +294,9 @@ class Channel:
                 print(server_kick_message, flush=True)
                 
         elif graceful_shutdown == True and client_loc == "queue":
-            if client_kicked == True:
+            if client_kicked == False:
                 print(message["message"], flush=True)
-            elif client_kicked == False:
+            elif client_kicked == True:
                 print(server_kick_message, flush=True)
         
         # shutdown client

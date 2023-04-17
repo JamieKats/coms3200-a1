@@ -647,7 +647,6 @@ class ChatServer:
         client = self.get_client(received_message["sender"])
         
         # if client muted dont process message
-        print(client.is_muted())
         if client.is_muted():
             message = {
                 "message_type": "basic",

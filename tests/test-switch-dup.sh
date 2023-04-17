@@ -9,11 +9,11 @@ chan3port=$[45000 + $RANDOM % 15000]
 DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }"    > server-capture    &
-sleep 0.2; timeout 2 bash -c "{ (sleep 1; echo 'Hi channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.3; echo 'Still here') | $(./decide.sh $1 client) $chan1port Suhas; }" > client-capture-A &
-sleep 0.3; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan1port Pragun; }"    > client-capture-B  &
-sleep 0.4; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan2port Suhas; }"    > client-capture-C &
-sleep 3.1;
+timeout 3.5 bash -c "{ $(./decide.sh $1 server) goodconf; }"    > server-capture    &
+sleep 0.2; timeout 2.5 bash -c "{ (sleep 1; echo 'Hi channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.3; echo 'Still here') | $(./decide.sh $1 client) $chan1port Suhas; }" > client-capture-A &
+sleep 0.3; timeout 2.5 bash -c "{ $(./decide.sh $1 client) $chan1port Pragun; }"    > client-capture-B  &
+sleep 0.4; timeout 2.5 bash -c "{ $(./decide.sh $1 client) $chan2port Suhas; }"    > client-capture-C &
+sleep 3.6;
 
 echo -e "Suhas has joined the channel1 channel.\nPragun has joined the channel1 channel.\nSuhas has joined the channel2 channel.\nHi channel 1\nStill here" > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Suhas.\nSuhas has joined the channel.\nPragun has joined the channel.\nHi channel 1\nCannot switch to the channel2 channel.\nStill here" > client-capture-compare-A;

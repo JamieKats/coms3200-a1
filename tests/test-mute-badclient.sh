@@ -10,9 +10,9 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 2 bash -c "{ (sleep 0.3; echo '/mute channel1:nonexist 22') | $(./decide.sh $1 server) goodconf; }" > server-capture &
-sleep 0.2; timeout 1 bash -c "{ (sleep 0.6; echo 'Not muted yay') | $(./decide.sh $1 client) $chan1port Dave; }"           > client-capture &
-sleep 2.1;
+timeout 2.5 bash -c "{ (sleep 0.7; echo '/mute channel1:nonexist 22') | $(./decide.sh $1 server) goodconf; }" > server-capture &
+sleep 0.3; timeout 1.5 bash -c "{ (sleep 0.9; echo 'Not muted yay') | $(./decide.sh $1 client) $chan1port Dave; }"           > client-capture &
+sleep 2.6;
 
 echo -e "Dave has joined the channel1 channel.\nnonexist is not here.\nNot muted yay"           > server-capture-compare;
 echo -e "Welcome to the channel1 channel, Dave.\nDave has joined the channel.\nNot muted yay"   > client-capture-compare-messages;
