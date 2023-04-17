@@ -10,7 +10,7 @@ DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 4 bash -c "{ $(./decide.sh $1 server) goodconf; }"        > server-capture    &
-sleep 0.2; timeout 2.5 bash -c "{ (sleep 1; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; echo 'I am in channel 2') | $(./decide.sh $1 client) $chan1port Alex; }" > client-capture-A &
+sleep 0.2; timeout 2.5 bash -c "{ (sleep 1; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.1; echo 'I am in channel 2') | $(./decide.sh $1 client) $chan1port Alex; }" > client-capture-A &
 sleep 0.3; timeout 2.5 bash -c "{ $(./decide.sh $1 client) $chan1port Marshall; }"   > client-capture-B  &
 sleep 0.4; timeout 2.5 bash -c "{ $(./decide.sh $1 client) $chan2port Kimmel; }"     > client-capture-C &
 sleep 4.1;

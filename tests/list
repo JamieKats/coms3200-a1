@@ -62,6 +62,7 @@ SERVERCOMMANDS
     test-mute-good.sh                   muting client cannot chat or whisper
     #test-mute-timeout.sh               muting client does not time them out                    # Manually testing this one
 
+                                                                                                
     test-empty-bad.sh                   emptying a nonexistent channel                          
     test-empty-multichannel.sh          only the correct channel is emptied                     
     test-shutdown.sh                    shutting down server                                    

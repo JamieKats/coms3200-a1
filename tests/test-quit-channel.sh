@@ -55,4 +55,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;

@@ -6,7 +6,7 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=0;
+DEBUG=1;
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
@@ -75,4 +75,4 @@ else
     echo -e "\033[0;32mCorrect names attached to clientside message log(s).\033[0m";
 fi
 
-#rm server-capture server-capture-1 server-capture-compare client-capture-A client-capture-B client-capture-compare-A client-capture-compare-B client-capture-A-1 client-capture-B-1 names-A names-B names-S names-compare goodconf 2> /dev/null
+rm server-capture server-capture-1 server-capture-compare client-capture-A client-capture-B client-capture-compare-A client-capture-compare-B client-capture-A-1 client-capture-B-1 names-A names-B names-S names-compare goodconf 2> /dev/null

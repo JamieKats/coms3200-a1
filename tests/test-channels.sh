@@ -50,19 +50,19 @@ then
     then
         echo -e "Client A";
         echo -e "--------";
-        echo -e "$(diff client-capture-A-messages client-capture-compare-A)" 2>/dev/null;
+        echo -e "$(diff client-capture-A-1 client-capture-compare-A)" 2>/dev/null;
         echo -e "--------";
         echo -e "Client B"
         echo -e "--------";
-        echo -e "$(diff client-capture-B-messages client-capture-compare-B)"  2>/dev/null;
+        echo -e "$(diff client-capture-B-1 client-capture-compare-B)"  2>/dev/null;
         echo -e "--------";
         echo -e "Client C";
         echo -e "--------";
-        echo -e "$(diff client-capture-C-messages client-capture-compare-C)"  2>/dev/null;
+        echo -e "$(diff client-capture-C-1 client-capture-compare-C)"  2>/dev/null;
         echo -e "--------";
     fi
 else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;
+rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;

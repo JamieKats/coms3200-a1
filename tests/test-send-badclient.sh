@@ -6,7 +6,13 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=0;
+rm ./testtmp/AsFile.txt 2> /dev/null;
+rmdir ./testtmp 2> /dev/null;
+
+mkdir ./testtmp;
+echo -e "testing send!" >> ./testtmp/AsFile.txt;
+
+DEBUG=1;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &
@@ -60,4 +66,8 @@ else
 fi
 
 
-rm testtmp goodconf *capture* 2> /dev/null;
+rm ./AsFile.txt         2> /dev/null;
+rm ./testtmp/AsFile.txt         2> /dev/null;
+rmdir ./testtmp                 2> /dev/null;
+
+rm -rf testtmp goodconf *capture* 2> /dev/null;

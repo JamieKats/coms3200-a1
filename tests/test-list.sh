@@ -10,28 +10,16 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 5\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-# timeout 11 bash -c "{ $(./decide.sh $1 server) goodconf; }"                                                        > server-capture    &
-# sleep 0.2; timeout 9.5 bash -c "{ (sleep 5.7; echo '/list'; sleep 2.8; echo '/list') | $(./decide.sh $1 client) $chan1port Dan; }"   > client-capture    &
-# sleep 0.3; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil1; }"                                                      > /dev/null         &
-# sleep 0.4; timeout 5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil2; }"                                                      > /dev/null         &
-# sleep 0.5; timeout 5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil3; }"                                                      > /dev/null         &
-# sleep 0.6; timeout 5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil4; }"                                                      > /dev/null         &
-# sleep 0.7; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil5; }"                                                      > /dev/null         &
-# sleep 0.8; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil6; }"                                                      > /dev/null         &
-# sleep 0.9; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan2port Phil7; }"                                                      > /dev/null         &
-# sleep 1; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan2port Phil8; }"                                                      > /dev/null         &
-# sleep 11.1;
-
 timeout 11 bash -c "{ $(./decide.sh $1 server) goodconf; }"                                                        > server-capture    &
-sleep 0.3; timeout 9.6 bash -c "{ (sleep 6.6; echo '/list'; sleep 2.6; echo '/list') | $(./decide.sh $1 client) $chan1port Dan; }"   > client-capture    &
-sleep 0.4; timeout 9.6 bash -c "{  $(./decide.sh $1 client) $chan1port Phil1; }"                                                      > /dev/null         &
+sleep 0.3; timeout 9.5 bash -c "{ (sleep 6.6; echo '/list'; sleep 2.5; echo '/list') | $(./decide.sh $1 client) $chan1port Dan; }"   > client-capture    &
+sleep 0.4; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil1; }"                                                      > /dev/null         &
 sleep 0.5; timeout 6.7 bash -c "{  $(./decide.sh $1 client) $chan1port Phil2; }"                                                      > /dev/null         &
 sleep 0.6; timeout 6.7 bash -c "{  $(./decide.sh $1 client) $chan1port Phil3; }"                                                      > /dev/null         &
 sleep 0.7; timeout 6.7 bash -c "{  $(./decide.sh $1 client) $chan1port Phil4; }"                                                      > /dev/null         &
-sleep 0.8; timeout 9.6 bash -c "{  $(./decide.sh $1 client) $chan1port Phil5; }"                                                      > /dev/null         &
-sleep 0.9; timeout 9.6 bash -c "{  $(./decide.sh $1 client) $chan1port Phil6; }"                                                      > /dev/null         &
-sleep 1.0; timeout 10.1 bash -c "{  $(./decide.sh $1 client) $chan2port Phil7; }"                                                      > /dev/null         &
-sleep 1.1; timeout 10.1 bash -c "{  $(./decide.sh $1 client) $chan2port Phil8; }"                                                      > /dev/null         &
+sleep 0.8; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil5; }"                                                      > /dev/null         &
+sleep 0.9; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan1port Phil6; }"                                                      > /dev/null         &
+sleep 1; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan2port Phil7; }"                                                      > /dev/null         &
+sleep 1.1; timeout 9.5 bash -c "{  $(./decide.sh $1 client) $chan2port Phil8; }"                                                      > /dev/null         &
 sleep 11.1;
 
 # We didn't specify what happens if a connection 'just dies' so there is no exit message when the 0.6s clients time out. Whoops!
@@ -73,4 +61,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;

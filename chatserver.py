@@ -647,6 +647,7 @@ class ChatServer:
         client = self.get_client(received_message["sender"])
         
         # if client muted dont process message
+        print(client.is_muted())
         if client.is_muted():
             message = {
                 "message_type": "basic",
@@ -765,9 +766,9 @@ class ChatServer:
             "message": f"[Server message ({get_time()})] {sender_username} has left the channel."
         }
         
-        sender.send_message(message)
+        # sender.send_message(message)
         print(message["message"], flush=True)
-        
+        current_channel.send_message_clients_in_channel(message=message)
         # send client msg to close socket and reconnect on new port then close 
         # client connection
         sender.switch_channel([new_channel.port])
@@ -790,15 +791,13 @@ class ChatServer:
         }
         
         # the target client is not in the senders channel
-        if channel.client_in_channel(target_client) == False:
-            reply_message["message"] = f"[Server message ({get_time()})] {target_client} is not here."
-            channel.send_message_clients_in_channel(reply_message, message["sender"])
-            return
-        
-        # the file path does not exist
-        if message["file"] == b'':
-            reply_message["message"] = f"[Server message ({get_time()})] {file_path} does not exist."
-            channel.send_message_clients_in_channel(reply_message, message["sender"])
+        if channel.client_in_channel(target_client) == False or message["file"] == b'':
+            if channel.client_in_channel(target_client) == False:
+                reply_message["message"] = f"[Server message ({get_time()})] {target_client} is not here."
+                channel.send_message_clients_in_channel(reply_message, message["sender"])
+            if message["file"] == b'':
+                reply_message["message"] = f"[Server message ({get_time()})] {file_path} does not exist."
+                channel.send_message_clients_in_channel(reply_message, message["sender"])
             return
 
         # send success message to sender        
@@ -855,19 +854,19 @@ class ChatServer:
             return
 
         # close connection with client
-        channel.close_client(username=username, graceful_shutdown=True)
+        channel.close_client(username=username, graceful_shutdown=True, client_kicked=True)
         # client: ServerClient = channel.get_client_in_channel(username)
         # channel.remove_client_from_channel(username)
         # client.shutdown()
         
-        message = {
-            "message_type": "basic",
-            "message": f"[Server message ({get_time()})] {username} has left the channel."
-        }
-        channel.send_message_clients_in_channel(message)
+        # message = {
+        #     "message_type": "basic",
+        #     "message": f"[Server message ({get_time()})] {username} has left the channel."
+        # }
+        # channel.send_message_clients_in_channel(message)
 
         # print server message        
-        print(f"[Server message ({get_time()})] Kicked {username}.", flush=True)
+        # print(f"[Server message ({get_time()})] Kicked {username}.", flush=True)
         
 
     def mute(self, args: list) -> None:
@@ -897,7 +896,7 @@ class ChatServer:
         # user exists and time is valid
         client = self.get_client(username)
         client.mute(time_muted)
-        print(f"[Server message ({get_time()})] Muted {username} for {time} seconds.", flush=True)
+        print(f"[Server message ({get_time()})] Muted {username} for {time_muted} seconds.", flush=True)
         message = {
             "message_type": "basic"
         }

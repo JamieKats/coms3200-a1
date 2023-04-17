@@ -8,8 +8,6 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
-
 socketchan1=$(mktemp)
 socketchan2=$(mktemp)
 
@@ -24,7 +22,7 @@ bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan2port | wc -l) }" > "$socke
 sleep 4.1 & wait;
 
 export clientsocket1closed=$(<$socketchan1)
-export clientsocket2closed=$(<$socketchan2) 
+export clientsocket2closed=$(<$socketchan2)
 
 echo -e "Joseph has joined the channel2 channel.\nGlover has joined the channel1 channel.\nJoe has joined the channel1 channel.\nKicked Joe." > server-capture-compare-messages;
 echo -e "[Server message\n[Server message\n[Server message\n" > server-capture-compare-names;
@@ -42,8 +40,6 @@ servermistakesm=$(diff server-capture-messages server-capture-compare-messages |
 clientmistakesam=$(diff client-capture-A-messages client-capture-compare-A | wc -l);
 clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc -l);
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
-
-# clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port | wc -l);
 
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];
@@ -63,15 +59,15 @@ if [[ clientsocket1closed -ne 1 ]]
 then
     echo -e "\033[0;31mExpecting 1 client left in channel 1, either 0 or 2 clients were found connected to channel 1!\033[0m";
 else
-    echo -e "\033[0;32m Correct number of clients left.\033[0m";
-fi
+    echo -e "\033[0;32mCorrect number of clients left in channel1.\033[0m";
+fi  
 
 if [[ clientsocket2closed -ne 1 ]]
 then
     echo -e "\033[0;31mExpecting 1 client left in channel 2, and there are none!\033[0m";
 else
-    echo -e "\033[0;32m Correct number of clients left.\033[0m";
-fi
+    echo -e "\033[0;32mCorrect number of clients left in channel2.\033[0m";
+fi  
 
 if [[ clientmistakestot -gt 0 ]]
 then

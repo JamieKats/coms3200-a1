@@ -6,8 +6,7 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=0;
-echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
+DEBUG=1;
 
 clientsocketchan1=$(mktemp)
 clientsocketchan2=$(mktemp)
@@ -22,7 +21,7 @@ timeout 3.2 bash -c "{ (sleep 1.6; echo '/shutdown') | $(./decide.sh $1 server) 
 sleep 0.2; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan2port EmptyOne; }" > client-capture-A &
 sleep 0.3; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyTwo; }" > client-capture-B &
 sleep 0.4; timeout 2 bash -c "{ $(./decide.sh $1 client) $chan1port EmptyThree; }" > client-capture-C &
-sleep 1.1; bash -c "{ (ss -ntu | awk '{print $6}' | grep :$chan1port | wc -l) }" > "$clientsocketchan1" &
+sleep 1.1; bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan1port | wc -l) }" > "$clientsocketchan1" &
 bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan2port | wc -l) }" > "$clientsocketchan2" &
 bash -c "{ (ss -ntu | awk '{print \$6}' | grep :$chan3port | wc -l) }" > "$clientsocketchan3" &
 bash -c "{ (ss -ntu | awk '{print \$5}' | grep :$chan1port | wc -l) }" > "$serversocketchan1" &
@@ -54,13 +53,6 @@ clientmistakesam=$(diff client-capture-A-messages client-capture-compare-A | wc 
 clientmistakesbm=$(diff client-capture-B-messages client-capture-compare-B | wc -l);
 clientmistakescm=$(diff client-capture-C-messages client-capture-compare-C | wc -l);
 
-# clientsocket1closed=$(ss -ntu | awk '{print $6}' | grep :$chan1port | wc -l);
-# clientsocket2closed=$(ss -ntu | awk '{print $6}' | grep :$chan2port | wc -l);
-# clientsocket3closed=$(ss -ntu | awk '{print $6}' | grep :$chan3port | wc -l);
-# serversocket1closed=$(ss -ntu | awk '{print $5}' | grep :$chan1port | wc -l);
-# serversocket2closed=$(ss -ntu | awk '{print $5}' | grep :$chan2port | wc -l);
-# serversocket3closed=$(ss -ntu | awk '{print $5}' | grep :$chan3port | wc -l);
-
 servermistakestot=$[servermistakesm];
 clientmistakestot=$[clientmistakesam + clientmistakesbm + clientmistakescm];
 clientsocketsclosed=$[clientsocket1closed + clientsocket2closed + clientsocket3closed]
@@ -82,14 +74,14 @@ if [[ clientsocketsclosed -gt 0 ]]
 then
     echo -e "\033[0;31m Client sockets are still open that should be shut!\033[0m";
 else
-    echo -e "\033[0;32mConnections on channel1 closed!\033[0m";
+    echo -e "\033[0;32mAll Client sockets closed\033[0m";
 fi  
 
 if [[ serversocketsclosed -gt 0 ]]
 then
     echo -e "\033[0;31m Server sockets are still open that should be shut!\033[0m";
 else
-    echo -e "\033[0;32mConnections on channel2 closed!\033[0m";
+    echo -e "\033[0;32mAll Server Sockets Closed!\033[0m";
 fi  
 
 
@@ -115,4 +107,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;

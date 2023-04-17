@@ -2,7 +2,7 @@
 
 rm goodconf *capture* 2> /dev/null;
 
-DEBUG=0;
+DEBUG=1;
 
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
@@ -16,7 +16,7 @@ sleep 0.3; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port Donald; }"
 sleep 0.4; timeout 1.6 bash -c "{ $(./decide.sh $1 client) $chan1port Joe; }" > client-capture-C &
 sleep 4.1;
 
-echo -e "Joseph has joined the channel2 channel.\nDonald has joined the channel1 channel.\nJoe has joined the channel1 channel.\nGlover is not in channel42.\nchannel42 does not exist." > server-capture-compare-messages;
+echo -e "Joseph has joined the channel2 channel.\nDonald has joined the channel1 channel.\nJoe has joined the channel1 channel.\nchannel42 does not exist." > server-capture-compare-messages;
 echo -e "[Server message\n[Server message\n[Server message\n" > server-capture-compare-names;
 echo -e "Welcome to the channel2 channel, Joseph.\nJoseph has joined the channel." > client-capture-compare-A;
 echo -e "Welcome to the channel1 channel, Donald.\nDonald has joined the channel.\nJoe has joined the channel." > client-capture-compare-B;
