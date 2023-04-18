@@ -10,11 +10,11 @@ chan3port=$[45000 + $RANDOM % 15000]
 
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
-timeout 6 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
-sleep 0.2; timeout 5 bash -c "{ (sleep 1.1; echo 'Hi Nobody') | $(./decide.sh $1 client) $chan2port Terry; }" > client-capture-A &
-sleep 0.3; timeout 5 bash -c "{ (sleep 1.2; echo 'Hi Eric') | $(./decide.sh $1 client) $chan1port Henry; }" > client-capture-B   &
-sleep 0.4; timeout 5 bash -c "{ (sleep 1.4; echo 'Hi Henry') | $(./decide.sh $1 client) $chan1port Eric; }" > client-capture-C   &
-sleep 6.1;
+timeout 8 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture                                 &
+sleep 0.3; timeout 5.5 bash -c "{ (sleep 1.1; echo 'Hi Nobody') | $(./decide.sh $1 client) $chan2port Terry; }" > client-capture-A &
+sleep 0.4; timeout 5.5 bash -c "{ (sleep 1.3; echo 'Hi Eric') | $(./decide.sh $1 client) $chan1port Henry; }" > client-capture-B   &
+sleep 0.5; timeout 5.5 bash -c "{ (sleep 1.5; echo 'Hi Henry') | $(./decide.sh $1 client) $chan1port Eric; }" > client-capture-C   &
+sleep 8.1;
 
 echo -e "Terry has joined the channel2 channel.\nHenry has joined the channel1 channel.\nEric has joined the channel1 channel.\nHi Nobody\nHi Eric\nHi Henry" > server-capture-compare;
 echo -e "Welcome to the channel2 channel, Terry.\nTerry has joined the channel.\nHi Nobody" > client-capture-compare-A;
@@ -65,4 +65,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture-A client-capture-A-1 client-capture-compare-A client-capture-B client-capture-B-1 client-capture-compare-B client-capture-C client-capture-C-1 client-capture-compare-C 2> /dev/null;

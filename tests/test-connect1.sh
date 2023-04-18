@@ -3,7 +3,6 @@
 rm goodconf *capture* 2> /dev/null
 
 DEBUG=1;
-
 chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
@@ -22,8 +21,6 @@ ctime=$(head -n 1 client-capture | awk '{ print $3 }');
 
 stimecut=${stime: 1: 6};
 ctimecut=${ctime: 1: 6};
-echo $stimecut;
-echo $ctimecut;
 now="$(date | awk '{ print $4 }')";
 nowcut=${now: 0: 6};
 
@@ -31,14 +28,14 @@ if [ "$stimecut" = "$nowcut" ];
 then
     echo -e "\033[0;32mServer timestamp matches current time.\033[0m";
 else
-    echo -e "\033[0;31mServer timestamp (${stimecut}x) does not match current time (${nowcut}x).\033[0m";
+    echo -e "\033[0;31mServer timestamp (${stimecut}xx) does not match current time (${nowcut}xx).\033[0m";
 fi
 
 if [ "$ctimecut" = "$nowcut" ];
 then
     echo -e "\033[0;32mClient timestamp matches current time.\033[0m";
 else
-    echo -e "\033[0;31mClient timestamp (${ctimecut}x) does not match current time (${nowcut}x).\033[0m";
+    echo -e "\033[0;31mClient timestamp (${ctimecut}xx) does not match current time (${nowcut}xx).\033[0m";
 fi
 
 awk -F '] ' '{ print $2 }' server-capture > server-capture-1;
@@ -69,4 +66,4 @@ else
     echo -e "\033[0;32mClient stdout matches expected.\033[0m";
 fi
 
-rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null
+#rm goodconf server-capture server-capture-1 server-capture-compare client-capture client-capture-1 client-capture-compare 2> /dev/null

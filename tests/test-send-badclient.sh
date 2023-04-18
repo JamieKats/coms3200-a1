@@ -12,7 +12,7 @@ rmdir ./testtmp 2> /dev/null;
 mkdir ./testtmp;
 echo -e "testing send!" >> ./testtmp/AsFile.txt;
 
-DEBUG=1;
+DEBUG=0;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 3 bash -c "{ $(./decide.sh $1 server) goodconf; }" > server-capture &

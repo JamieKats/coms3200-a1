@@ -6,7 +6,7 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=1;
+DEBUG=0;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 7 bash -c "{ (sleep 1; echo '/mute channel1:Richard 2') | $(./decide.sh $1 server) goodconf; }" > server-capture &
@@ -26,14 +26,15 @@ servermistakesm=$(diff server-capture-messages server-capture-compare | wc -l);
 clientmistakes=$(diff client-capture-messages client-capture-compare-messages | wc -l);
 servermistakestot=$[servermistakesm + servermistakesn];
 
-
 if [[ servermistakestot -gt 0 ]]
 then
     echo -e "\033[0;31mServer logs do not match expected.\033[0m";
     if [[ DEBUG -eq 1 ]]
     then
+        echo "Messages";
         echo -e $(diff server-capture-messages server-capture-compare) 2>/dev/null;
-        echo ie $(diff server-capture-names server-capture-compare-names);
+        echo "Names";
+        echo -e $(diff server-capture-names server-capture-compare-names) 2>/dev/null
     fi
 else
     echo -e "\033[0;32mServer logs match expected.\033[0m";
@@ -46,4 +47,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;

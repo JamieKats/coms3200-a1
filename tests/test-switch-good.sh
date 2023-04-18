@@ -6,13 +6,13 @@ chan1port=$[5000 + $RANDOM % 15000]
 chan2port=$[20000 + $RANDOM % 15000]
 chan3port=$[45000 + $RANDOM % 15000]
 
-DEBUG=1;
+DEBUG=0;
 echo -en "channel channel1 $chan1port 10\nchannel channel2 $chan2port 10\nchannel channel3 $chan3port 10" > goodconf;
 
 timeout 5 bash -c "{ $(./decide.sh $1 server) goodconf; }"        > server-capture    &
-sleep 0.2; timeout 3.0 bash -c "{ (sleep 1.1; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.6; echo 'I am in channel 2') | $(./decide.sh $1 client) $chan1port Alex; }" > client-capture-A &
-sleep 0.3; timeout 3.0 bash -c "{ $(./decide.sh $1 client) $chan1port Marshall; }"   > client-capture-B  &
-sleep 0.4; timeout 3.0 bash -c "{ $(./decide.sh $1 client) $chan2port Kimmel; }"     > client-capture-C &
+sleep 0.2; timeout 3 bash -c "{ (sleep 1.3; echo 'I am in channel 1'; sleep 0.3; echo '/switch channel2'; sleep 0.6; echo 'I am in channel 2') | $(./decide.sh $1 client) $chan1port Alex; }" > client-capture-A &
+sleep 0.3; timeout 3 bash -c "{ $(./decide.sh $1 client) $chan1port Marshall; }"   > client-capture-B  &
+sleep 0.4; timeout 3 bash -c "{ $(./decide.sh $1 client) $chan2port Kimmel; }"     > client-capture-C &
 sleep 5.1;
 
 echo -e "Alex has joined the channel1 channel.\nMarshall has joined the channel1 channel.\nKimmel has joined the channel2 channel.\nI am in channel 1\nAlex has left the channel.\nAlex has joined the channel2 channel.\nI am in channel 2" > server-capture-compare-messages;
@@ -65,4 +65,4 @@ else
     echo -e "\033[0;32mClients' message logs match expected.\033[0m";
 fi
 
-#rm goodconf *capture* 2> /dev/null;
+rm goodconf *capture* 2> /dev/null;
