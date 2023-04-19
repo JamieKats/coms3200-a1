@@ -10,6 +10,9 @@ program for COMS3200.
 
 Usage: python3 chatclient.py port username
 
+port - port the client is connecting to that the channel is hosted on
+username - username of the client
+
 TODO remove all instances of todo print statements in all files
 """
 import socket

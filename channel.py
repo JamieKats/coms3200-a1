@@ -257,7 +257,13 @@ class Channel:
         return None
     
     
-    def close_client(self, username: str, graceful_shutdown: bool, client_kicked:bool=False) -> None:
+    def close_client(
+        self, 
+        username: str, 
+        graceful_shutdown: bool, 
+        client_kicked:bool=False, 
+        client_afk:bool=False
+    ) -> None:
         """
         Sends the client a shutdown command before closing threads and 
         connections for client.
@@ -283,17 +289,27 @@ class Channel:
         }
         
         server_kick_message = f"[Server message ({get_time()})] Kicked {username}."
+        afk_message = {
+            "message_type": "basic",
+            "message": f"[Server message ({get_time()})] {client.name} went AFK."
+        }
 
         # send client leaving message to everyone in channel and print for server
         # only when client shutsdown_gracefully
-        if graceful_shutdown == True and client_loc == "chatroom":
+        if graceful_shutdown == True and client_loc == "chatroom" and client_afk == True:
+            # print("printing afk msg")
+            self.send_message_clients_in_channel(afk_message)
+            print(afk_message["message"])
+        if graceful_shutdown == True and client_loc == "chatroom" and client_kicked == True:
+            # print("printing afk kicked")
             self.send_message_clients_in_channel(message)
             if client_kicked == False:
                 print(message["message"], flush=True)
             elif client_kicked == True:
                 print(server_kick_message, flush=True)
                 
-        elif graceful_shutdown == True and client_loc == "queue":
+        if graceful_shutdown == True and client_loc == "queue":
+            # print("printing queue leave")
             if client_kicked == False:
                 print(message["message"], flush=True)
             elif client_kicked == True:

@@ -96,7 +96,9 @@ class ServerClient:
                 "message_type": "command",
                 "command": "/shutdown"
             }
+            # print("before send msg")
             self.send_message(shutdown_msg)
+            # print("after send msg")
         
         # close socket
         self.close_connection()
@@ -111,6 +113,7 @@ class ServerClient:
             self.conn_socket.close()
         except OSError as e:
             pass
+        # print("end of close connection")
             
             
     def switch_channel(self, args: list) -> None:

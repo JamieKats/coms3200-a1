@@ -1,3 +1,23 @@
+The primary files for this assignment are chatserver.py and chatclient.py.
+The chatserver.py and chatclient.py is a chat server client program implemented according to the COMS3200 Assignment 1 Part C spec sheet. 
+
+Docstrings for all functions are included in the python files. This README will contain high level descriptions of the file struture.
+
+NOTE: some naming conventions differ between the assignment spec and the submitted implementation.
+    - In the submission a Channel is referred to as chat_room
+    - In the submission a Channel contains a waiting queue and a chat room
+
+Auxiliary files required to run the server and client are:
+    channel.py - Channel class that contains the channel name, port, capacity, chat_room, client_queue, socket connection to join the channel and a lock to make operations on the channel atomic. The channel methods contains methods that act on the queue and chat room such as moving clients from the queue to the chat room and closing all connections in the channel.
+
+    client_queue.py - represents a client queue which simply extends a python list class with some additional functionality to perform threadsafe adding and removal of clients.
+
+    sender_receiver.py - generic class with two static methods, send_message() and receive_message() which are used by the client and server to send a receive generic messages of any size over TCP.
+
+    server_client.py - client class used by the server to store all information related to the client that the server requires. e.g. mute status, connection sockets, time last active.
+
+    utils.py - utilities module that holds shared generic methods used by any file within this submission.
+
 
 References
 [1]     A. Rockikz, "How to Transfer Files in the Network using Sockets in Python." thepythoncode.com. https://www.thepythoncode.com/article/send-receive-files-using-sockets-python (accessed April 5, 2023).

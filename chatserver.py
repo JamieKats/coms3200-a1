@@ -10,70 +10,9 @@ program for COMS3200.
 
 Usage: python3 chatserver.py configfile
 
+configfile - file path to the configuration file
+
 TODO remove all instances of todo print statements in all files
-"""
-"""
-Each channel is on indenpendent socket
-channel name cannot begin with number
-at least 3 channels in config
-channel capacity at least 5
-
-Clients joining a channel are put into a FIFO queue until there is a free 
-position in the channel
-
-QUESTIONS
-    - if the channel is not full does the server still send the client the queue
-    message saying they are in a queue??
-    only send 0 queue msg when channel is full
-    - if the channel is full does the queue wait time message get printed every
-    time the number of clients ahead reduces???
-    yes
-    - are we allowed to use json module
-    A. if runs on moss then ok
-    - if client is half way through typing a message and a message is received 
-    from their channel do you just print to stdout which would insert 
-    somewhere in the clients typed message
-    A person typing message will have their input interupted by the new message
-    - if a client moves from one queue to another does their waiting time reset?
-    no timer for people in queue, timer only applies to people in channel
-    - if user inputs '        this is a message         ' do we send the message
-    with the spaces on either side or can we strip the spaces???
-    A send full thing. if command has space in front then it is not a valid command
-    - is anything displayed to the client when they have ben /kick(ed) by the 
-    server?
-    A client process just ends, no msg printed for client
-    - can we use concurrent.futures.ThreadPoolExecutor() ? is a context manager 
-    for threads, will auto handle .join() on all threads in the threadpool
-        - https://realpython.com/intro-to-python-threading/
-        - https://docs.python.org/3/library/concurrent.futures.html
-    If it runs  on moss then OK
-    - if the channel is empty but there are multiple people in the queue, 
-    should each user be updated as they move through the queue and into the chat
-    room or should they only get the message that they have joined the channel
-    A multiple people joining queue at same time for an empty channel get the 
-    queue messages still. e.g. 50 people joining an empty channel of size 100 
-    will get all queue update messages as all the people in front move into the channel
-    
-    A
-    - if someone leaves queue in middle ALL users in queue get queue position msg
-    
-    
-    - how do the qns foir part A work? are they changing everytime you start a new attempt on BB?
-    are we also suppose to submit answers on BB or just the solutions we post as the PDF
-    - what file types expected to be sent??
-    - if a command is provided with invalid commands, what to do?
-    - if a command is provided with more or less commands than expected, what to do?
-    - if client is starting up and they specify a channel that has someone with same username, what do we do?
-    If client swaps channels and someone already exists with the same username we dont move them, 
-    but nothing is specified for how we handle this case when the client is starting up for the first time
-    - max size of messages sent??
-    
-    NOTES FOR JAMIE 15/4/23
-    - when client exits early (crashes) server crashes because it tries to close pipes for 
-    the client that has already died
-    - in readme specify that channel is refering to the collection of chat lobby and queue
-    - need to handle client having msg piped into client instance immediately,
-    therefore need to wait for server connection before actuually taking in input
 """
 import socket
 import threading
@@ -98,7 +37,8 @@ CONFIG_COMMAND = 1
 VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 VALID_SERVER_COMMANDS = ['/kick', '/mute', '/empty', '/shutdown']
 
-AFK_TIME_LIMIT = 100000 # TODO put back to 100
+AFK_TIME_LIMIT = 100
+# AFK_TIME_LIMIT = 10 # TODO
 
 
 class ChatServer:
@@ -111,8 +51,8 @@ class ChatServer:
         if len(sys.argv) != 2:
             exit(1)
         
+        # load the config file
         config_path = sys.argv[CONFIG_COMMAND]
-        
         self.channel_configs = {}
         self.load_config(config_path)
         
@@ -131,7 +71,6 @@ class ChatServer:
         self.shutdown_server = False
         
         
-    # TODO two shutdowns temporary, one for sigint one for shutdown command
     def shutdown(self, signum=None, frame=None) -> None:
         """
         Shuts down the server.
@@ -142,14 +81,13 @@ class ChatServer:
         for channel in self.channels.values():
             channel.shutdown()
         
-        # exit process
-        # time.sleep(1) # TODO tmp sleep aded before exit to allow daemon threads to throw exceptions to fix
         exit(0)
         
         
     def get_clients_channel(self, username: str) -> Channel:
         """
-        Returns the channel the client is apart of. None otherwise
+        Returns the channel the client instance the client is apart of. 
+        None otherwise.
 
         Args:
             username (str): username of the client
@@ -164,7 +102,7 @@ class ChatServer:
             
     def get_channel(self, channel_name: str) -> Channel:
         """
-        Returns the channel if it exists, None otherwise
+        Returns the channel instance if it exists, None otherwise
 
         Args:
             channel_name (str): channel name to search for
@@ -218,7 +156,8 @@ class ChatServer:
           
           
     def check_channel_config(self, channel_configs):
-        """_summary_
+        """
+        Checks if the channel config given is valid according to the spec.
 
         Args:
             chanel_config (_type_): _description_
@@ -563,30 +502,18 @@ class ChatServer:
                 
                 # remove clients that have exceeded the inacitvity limit
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    channel.close_client(username=client.name, graceful_shutdown=True)
+                    channel.close_client(username=client.name, graceful_shutdown=True, client_afk=True)
                     # channel.remove_client_from_channel(client.name)
                     # client.shutdown()
                     
-                    message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
-                    channel.send_message_clients_in_channel(message)
-                    print(message["message"], flush=True)
-                    
+                    # message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
+                    # channel.send_message_clients_in_channel(message)
+                    # print(message["message"], flush=True)
+                  
+            # AFK timer doesnt apply to people in queue. Keep updating clients
+            # last time active in queue  
             for client in channel.client_queue:
-                # ignore muted clients
-                if client.is_muted(): continue
-                
-                # remove clients that have exceeded the inacitvity limit
-                if client.time_last_active + AFK_TIME_LIMIT < time.time():
-                    channel.close_client(username=client.name, graceful_shutdown=True)
-                    # channel.remove_client_from_channel(client.name)
-                    # client.shutdown()
-                    
-                    message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
-                    channel.send_message_clients_in_channel(message)
-                    print(message["message"], flush=True)
-                    
-                    
-    # def send_outgoing_messages()
+                client.time_last_active = time.time()
                 
     
     def get_client(self, username: str) -> ServerClient:
