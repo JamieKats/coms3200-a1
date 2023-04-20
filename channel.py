@@ -294,21 +294,23 @@ class Channel:
             "message": f"[Server message ({get_time()})] {client.name} went AFK."
         }
 
-        # send client leaving message to everyone in channel and print for server
-        # only when client shutsdown_gracefully
+        # send afk message if client removed because of AFK
         if graceful_shutdown == True and client_loc == "chatroom" and client_afk == True:
-            # print("printing afk msg")
             self.send_message_clients_in_channel(afk_message)
             print(afk_message["message"])
-        if graceful_shutdown == True and client_loc == "chatroom" and client_kicked == True:
-            # print("printing afk kicked")
+
+        # send kicked message if client removed because of kick
+        elif graceful_shutdown == True and client_loc == "chatroom" and client_kicked == True:
             self.send_message_clients_in_channel(message)
-            if client_kicked == False:
-                print(message["message"], flush=True)
-            elif client_kicked == True:
-                print(server_kick_message, flush=True)
-                
-        if graceful_shutdown == True and client_loc == "queue":
+            print(server_kick_message, flush=True)
+
+        # send normal removal message if client removed for other reason
+        elif graceful_shutdown == True and client_loc == "chatroom" and client_afk == False and client_kicked == False:
+            self.send_message_clients_in_channel(message)
+            print(message["message"], flush=True)
+            
+        # if client in queue send appropriate messages
+        elif graceful_shutdown == True and client_loc == "queue":
             # print("printing queue leave")
             if client_kicked == False:
                 print(message["message"], flush=True)
