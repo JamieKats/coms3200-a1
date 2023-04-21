@@ -18,18 +18,16 @@ import socket
 import threading
 import time
 import sys
-import json
 import queue
 import signal
-from utils import get_time
 
+# import custom classes
+from utils import get_time
 from server_client import ServerClient
 from client_queue import ClientQueue
 from channel import Channel
 
 SERVER_HOST = '127.0.0.1'
-
-MSG_BUFFER_SIZE = 4096
 
 # command line arguments
 CONFIG_COMMAND = 1
@@ -38,7 +36,6 @@ VALID_CLIENT_COMMANDS = ['/whisper', '/quit', '/list', '/switch', '/send']
 VALID_SERVER_COMMANDS = ['/kick', '/mute', '/empty', '/shutdown']
 
 AFK_TIME_LIMIT = 100
-# AFK_TIME_LIMIT = 10 # TODO
 
 
 class ChatServer:
@@ -185,7 +182,6 @@ class ChatServer:
         for channel_name, channel_info in self.channel_configs.items():
             port = int(channel_info["port"])
             capacity = int(channel_info["capacity"])
-            # print(f"chatserver create_channels: port {port}")
             
             # create channel socket and bind
             self.channel_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -193,6 +189,7 @@ class ChatServer:
             self.channel_socket.bind((SERVER_HOST, port))
             self.channel_socket.listen()
             
+            # create channel
             channels[channel_name] = Channel(
                 name=channel_name,
                 port=port,
@@ -244,7 +241,6 @@ class ChatServer:
                 server_command = input().strip().split(" ")
             except EOFError:
                 continue
-                # return
             
             command = server_command[0]
             args = server_command[1:]
@@ -262,6 +258,7 @@ class ChatServer:
         channel: Channel
     ) -> None:
         # if client already exists with same name in channel close new client
+        # and return early
         if channel.client_in_channel(client.name):
             message = {
                 'message_type': 'basic',
@@ -280,15 +277,11 @@ class ChatServer:
                 message = client.receive_message()
             except ConnectionResetError:
                 channel.close_client(username=client.name, graceful_shutdown=False)
-                # channel.remove_client_from_channel(client.name)
-                # client.shutdown()
                 return
             
             # None message indicated client socket is closed, remove client
             if message is None:
                 channel.close_client(username=client.name, graceful_shutdown=False)
-                # channel.remove_client_from_channel(client.name)
-                # client.shutdown()
                 return
             
             # if message first word is a valid command edit message metadata
@@ -312,13 +305,21 @@ class ChatServer:
         client_message_queue: queue.Queue,
         server_command_queue: queue.Queue,
         channels: dict
-        ) -> None:
+    ) -> None:
         """
         Executes the main control loop that handles
             - channel queues
             - incoming client messages/commands
             - incoming server commands
             - checks if users are AFK
+            
+        All methods called are non blocking.
+
+        Args:
+            client_message_queue (queue.Queue): queue holding all clients 
+            incoming messages
+            server_command_queue (queue.Queue): queue holding all server commands
+            channels (dict): mapping of channel names to the channel instances
         """
         while not self.shutdown_server:
             self.process_channel_queues(channels)
@@ -329,8 +330,6 @@ class ChatServer:
             
             self.check_afk_clients(channels)
             
-            # self.send_outgoing_messages()
-       
             # add small sleep to slow down busy wait a bit
             time.sleep(0.01)
 
@@ -358,10 +357,11 @@ class ChatServer:
         """
         while True:
             try:
-                # print(channel.conn_socket.getsockname()[1])
                 connection_socket, addr = channel.conn_socket.accept()
+            # OSError indicates socket is closed, return early
             except OSError:
                 return
+            
             # create client with name=None then fill out later
             client: ServerClient = ServerClient(
                 name=None,
@@ -391,6 +391,7 @@ class ChatServer:
         Args:
             channels (dict): dictionary of all the channels
         """
+        channel: Channel
         for channel in channels.values():
             # move users from queue to chat lobby if there is space
             users_in_lobby = len(channel.chat_room)
@@ -415,7 +416,7 @@ class ChatServer:
         """
         try:
             message = incoming_queue.get(block=False)
-        except queue.Empty as e:
+        except queue.Empty:
             return
         
         client_name = message["sender"]
@@ -423,8 +424,6 @@ class ChatServer:
         client: ServerClient  = channel.get_client_in_channel(client_name)
         
         # reset AFK timer when client sends msg/cmd when not muted
-        # print(message)
-        # print(client)
         if client.is_muted() == False:
             client.time_last_active = time.time()
             
@@ -503,12 +502,6 @@ class ChatServer:
                 # remove clients that have exceeded the inacitvity limit
                 if client.time_last_active + AFK_TIME_LIMIT < time.time():
                     channel.close_client(username=client.name, graceful_shutdown=True, client_afk=True)
-                    # channel.remove_client_from_channel(client.name)
-                    # client.shutdown()
-                    
-                    # message["message"] = f"[Server message ({get_time()})] {client.name} went AFK."
-                    # channel.send_message_clients_in_channel(message)
-                    # print(message["message"], flush=True)
                   
             # AFK timer doesnt apply to people in queue. Keep updating clients
             # last time active in queue  
@@ -529,13 +522,6 @@ class ChatServer:
             None if they don't exist.
         """
         for channel in self.channels.values():
-            # TODO
-            # for client in channel.chat_room:
-            #     if client.name == username:
-            #         return client
-            # for client in channel.client_queue:
-            #     if client.name == username:
-            #         return client
             client: ServerClient = channel.get_client_in_channel(username)
             if client is not None: return client
         return None
@@ -584,6 +570,7 @@ class ChatServer:
             
         args = received_message['args']
         whisper_target = args[0]
+        
         # construct message from args
         whisper_message = " ".join(args[1:])
         target_channel: Channel = received_message["channel"]
@@ -596,6 +583,7 @@ class ChatServer:
                 "message": no_user_msg,
                 "receiver": received_message["sender"]
             }
+            
         # whisper target is in chat lobby
         else:
             formated_whisper = f"[{received_message['sender']} whispers to you: ({get_time()})] {whisper_message}"
@@ -692,9 +680,9 @@ class ChatServer:
             "message": f"[Server message ({get_time()})] {sender_username} has left the channel."
         }
         
-        # sender.send_message(message)
         print(message["message"], flush=True)
         current_channel.send_message_clients_in_channel(message=message)
+        
         # send client msg to close socket and reconnect on new port then close 
         # client connection
         sender.switch_channel([new_channel.port])
