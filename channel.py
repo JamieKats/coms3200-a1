@@ -1,5 +1,19 @@
+"""
+The University of Queensland
+Semester 1 2023 COMS3200 Assignment 1 Part C
+
+author: Jamie Katsamatsas 
+student id: 46747200
+
+This file contains a class representing a channel. Channels contain a waiting 
+queue and a chat room which the clients join. 
+
+TODO remove all instances of todo print statements in all files
+"""
 import socket
 import threading
+
+# custom module imports
 from server_client import ServerClient
 from client_queue import ClientQueue
 from utils import get_time
@@ -11,13 +25,13 @@ class Channel:
     when there is space for them
     """
     def __init__(self, name, port, capacity, conn_socket) -> None:
-        self.name: str = name
-        self.port: int = port
-        self.capacity: int = capacity
-        self.chat_room: list = []
-        self.client_queue: ClientQueue = ClientQueue()
-        self.conn_socket: socket.socket = conn_socket
-        self.lock = threading.Lock()
+        self.name: str = name # name of the channel
+        self.port: int = port # listening port the clients must connect to
+        self.capacity: int = capacity # max numbers of clients that can join the chat room
+        self.chat_room: list = [] # the chat room that will hold clients
+        self.client_queue: ClientQueue = ClientQueue() # custom queue class
+        self.conn_socket: socket.socket = conn_socket # listening socket for the channel
+        self.lock = threading.Lock() # lock to create atomic methods
         
         
     def add_client_to_queue(self, client: ServerClient) -> None:
@@ -38,29 +52,6 @@ class Channel:
         self.client_queue.put(client, self.name, spaces_in_chat_room)
         
         self.lock.release()
-        # # send client welcome message            
-        # welcome_msg = f"[Server message ({get_time()})] Welcome to the " \
-        #     + f"{self.name} channel, {client.name}."
-        # message = {
-        #     'message_type': 'basic',
-        #     'message': welcome_msg
-        # }
-        # client.send_message(message)
-        
-        # # return early if client added is only one in queue and there is a free 
-        # # spot in the lobby
-        # if len(self.client_queue) == 1 and len(self.chat_room) < self.capacity:
-        #     return
-        
-        # # send the client the queue location message
-        # queue_loc_msg = f"[Server message ({get_time()})] You are in the " \
-        #     + f"waiting queue and there are {len(self.client_queue) - 1} " \
-        #     + "user(s) ahead of you."
-        # message = {
-        #     'message_type': 'basic',
-        #     'message': queue_loc_msg
-        # }
-        # client.send_message(message)
 
 
     def move_client_to_lobby(self) -> None:
@@ -241,10 +232,10 @@ class Channel:
         otherwise None returned
 
         Args:
-            username (str): _description_
+            username (str): username of the client to find
 
         Returns:
-            bool: _description_
+            str: Location of the client, either "chatroom" or "queue"
         """
         client_in_chat_room = self.get_client_in_chat_room(username)
         if client_in_chat_room is not None:
@@ -278,7 +269,6 @@ class Channel:
         # check if client in queue or chat room, if they are in queue, remove 
         # them and dont send leaving message
         client_loc = self.where_is_client(username)
-        # print(f"client is in {client_loc}")
          
         self.remove_client_from_channel(username)
         
@@ -295,23 +285,32 @@ class Channel:
         }
 
         # send afk message if client removed because of AFK
-        if graceful_shutdown == True and client_loc == "chatroom" and client_afk == True:
+        if graceful_shutdown == True \
+            and client_loc == "chatroom" \
+            and client_afk == True:
+                
             self.send_message_clients_in_channel(afk_message)
             print(afk_message["message"])
 
         # send kicked message if client removed because of kick
-        elif graceful_shutdown == True and client_loc == "chatroom" and client_kicked == True:
+        elif graceful_shutdown == True \
+            and client_loc == "chatroom" \
+            and client_kicked == True:
+                
             self.send_message_clients_in_channel(message)
             print(server_kick_message, flush=True)
 
         # send normal removal message if client removed for other reason
-        elif graceful_shutdown == True and client_loc == "chatroom" and client_afk == False and client_kicked == False:
+        elif graceful_shutdown == True \
+            and client_loc == "chatroom" \
+            and client_afk == False \
+            and client_kicked == False:
+                
             self.send_message_clients_in_channel(message)
             print(message["message"], flush=True)
             
         # if client in queue send appropriate messages
         elif graceful_shutdown == True and client_loc == "queue":
-            # print("printing queue leave")
             if client_kicked == False:
                 print(message["message"], flush=True)
             elif client_kicked == True:

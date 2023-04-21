@@ -1,3 +1,15 @@
+"""
+The University of Queensland
+Semester 1 2023 COMS3200 Assignment 1 Part C
+
+author: Jamie Katsamatsas 
+student id: 46747200
+
+This file contains the implementation of a client queue. The client queue class
+extends the list class.
+
+TODO remove all instances of todo print statements in all files
+"""
 import threading
 from utils import get_time
 from server_client import ServerClient

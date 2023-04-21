@@ -370,7 +370,6 @@ class ChatServer:
             
             # receive first message from client with clients username
             client_settings = client.receive_message()
-            
             client.name = client_settings["username"]
             
             # create listener thread for new user
@@ -674,12 +673,12 @@ class ChatServer:
         # remove sender from existing channel
         current_channel: Channel = message["channel"]
         current_channel.remove_client_from_channel(sender_username)
-        
+
+        # send client left message to clients and server        
         message = {
             "message_type": "basic",
             "message": f"[Server message ({get_time()})] {sender_username} has left the channel."
         }
-        
         print(message["message"], flush=True)
         current_channel.send_message_clients_in_channel(message=message)
         
@@ -749,6 +748,9 @@ class ChatServer:
     def kick(self, args: list) -> None:
         """
         Kicks the client from the channel.
+        
+        When a client is kicked from the server they are removed from the 
+        channel or queue they are in.
 
         Args:
             args (list): command line arguments given with kick command
@@ -769,18 +771,6 @@ class ChatServer:
 
         # close connection with client
         channel.close_client(username=username, graceful_shutdown=True, client_kicked=True)
-        # client: ServerClient = channel.get_client_in_channel(username)
-        # channel.remove_client_from_channel(username)
-        # client.shutdown()
-        
-        # message = {
-        #     "message_type": "basic",
-        #     "message": f"[Server message ({get_time()})] {username} has left the channel."
-        # }
-        # channel.send_message_clients_in_channel(message)
-
-        # print server message        
-        # print(f"[Server message ({get_time()})] Kicked {username}.", flush=True)
         
 
     def mute(self, args: list) -> None:

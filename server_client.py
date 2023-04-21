@@ -1,3 +1,14 @@
+"""
+The University of Queensland
+Semester 1 2023 COMS3200 Assignment 1 Part C
+
+author: Jamie Katsamatsas 
+student id: 46747200
+
+This file implements a class for the client that the server will use.
+
+TODO remove all instances of todo print statements in all files
+"""
 import time
 import socket
 import threading
@@ -7,7 +18,7 @@ class ServerClient:
     def __init__(self, name, conn_socket, addr) -> None:
         self.name: str = name # name of the Client
         self.conn_socket: socket = conn_socket # connection to client
-        self.addr = addr
+        self.addr = addr # connection address
         self.time_last_active = time.time() # time client was last active
         self.time_of_mute = 0 # epoch of time client was muted
         self.time_muted = 0 # time client was last muted for
@@ -96,9 +107,7 @@ class ServerClient:
                 "message_type": "command",
                 "command": "/shutdown"
             }
-            # print("before send msg")
             self.send_message(shutdown_msg)
-            # print("after send msg")
         
         # close socket
         self.close_connection()
@@ -113,7 +122,6 @@ class ServerClient:
             self.conn_socket.close()
         except OSError as e:
             pass
-        # print("end of close connection")
             
             
     def switch_channel(self, args: list) -> None:
