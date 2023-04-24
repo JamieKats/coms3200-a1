@@ -1,3 +1,7 @@
+2023 Semester 1 COMS3200 Assignment 1 Part C README 
+Jamie Katsamatsas
+s4674720
+
     HIGH LEVEL ABSTRACT DETAILING OF MY APPROACH
 The primary files for this assignment are chatserver.py and chatclient.py.
 The chatserver.py and chatclient.py is a TCP chat server client program 

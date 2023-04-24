@@ -556,6 +556,8 @@ class ChatServer:
         Args:
             received_message (dict): message metadata from the sender.
         """
+        if len(received_message["args"]) < 2: return
+        
         client = self.get_client(received_message["sender"])
         
         # if client muted dont process message
@@ -644,6 +646,8 @@ class ChatServer:
         Args:
             received_message (dict): message metadata from the sender.
         """
+        if len(message["args"]) < 1: return
+        
         args = message["args"]
         new_channel_name = args[0]
         new_channel: Channel = self.get_channel(new_channel_name)
@@ -696,8 +700,14 @@ class ChatServer:
         Args:
             received_message (dict): message metadata from the sender.
         """
-        target_client = message["args"][0]
-        file_path = message["args"][1]
+        if len(message["args"]) < 2: return
+        
+        try:
+            target_client = message["args"][0]
+            file_path = message["args"][1]
+        except Exception:
+            return
+        
         channel: Channel = self.get_clients_channel(message["sender"])
         reply_message = {
             "message_type": "basic",
@@ -755,8 +765,14 @@ class ChatServer:
         Args:
             args (list): command line arguments given with kick command
         """
-        channel_name = args[0].split(":")[0]
-        username = args[0].split(":")[1]
+        if len(args) < 1: return
+        
+        try:
+            channel_name = args[0].split(":")[0]
+            username = args[0].split(":")[1]
+        except Exception:
+            return
+        
         channel: Channel = self.get_channel(channel_name)
         
         # channel doesnt exist
@@ -780,8 +796,14 @@ class ChatServer:
         Args:
             args (list): command line arguments given with mute command
         """
-        channel_name = args[0].split(":")[0]
-        username = args[0].split(":")[1]
+        if len(args) < 2: return
+        
+        try:
+            channel_name = args[0].split(":")[0]
+            username = args[0].split(":")[1]
+        except Exception:
+            return
+        
         time_muted = args[1]
         
         # time must be positive integer
@@ -822,6 +844,8 @@ class ChatServer:
         Args:
             args (list): command line arguments given with this command
         """
+        if len(args) < 1: return
+        
         channel_name = args[0]
         channel: Channel = self.get_channel(channel_name)
         
