@@ -700,7 +700,7 @@ class ChatServer:
         Args:
             received_message (dict): message metadata from the sender.
         """
-        if len(message["args"] < 2): return
+        if len(message["args"]) < 2: return
         
         try:
             target_client = message["args"][0]
