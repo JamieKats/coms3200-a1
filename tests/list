@@ -1,0 +1,71 @@
+CONFORMITY                                                                                      # Indent completed tests
+    test-illegals.sh
+
+CONFIG FILE
+    test-badconf-ephemeral.sh
+    test-badconf-nonexist.sh
+    test-badconf-numchannel.sh
+    test-badconf-alphacap.sh
+    test-badconf-smallcap.sh
+    test-badconf-alphaport.sh
+    test-badconf-twochannels.sh
+    test-badconf-dupname.sh
+    test-badconf-dupport.sh
+    test-badconf-missingno.sh
+
+SERVER
+    test-server-noconfig.sh
+    test-server-overload.sh
+
+CLIENT
+    test-client-noargs.sh
+    test-client-noport.sh
+    test-client-alphaport.sh
+    test-client-noname.sh
+    test-client-overload.sh
+
+CONJUNCTION
+    test-connect1.sh                    connection, timestamps
+    test-connect2.sh                    send/recv messages
+    test-channels.sh                    separating channels
+    test-queue-dup.sh                   client cannot join channel with duplicate client name
+
+CLIENTCOMMANDS
+    test-whisper-good.sh                whispering to valid client
+    test-whisper-bad.sh                 whispering to missing client
+    test-quit-channel.sh                quitting in channel
+    test-quit-queue.sh                  queueing, quitting in queue
+
+    test-list.sh                        listing
+
+    test-switch-good.sh                 switching to valid channel
+    test-switch-bad.sh                  switching to invalid channel
+    test-switch-full.sh                 switching to full channel
+    test-switch-dup.sh                  switching to channel with existing user                 
+
+    test-send-good.sh                   sending file correctly
+    test-send-badfile.sh                sending invalid file                                    
+    test-send-badclient.sh              sending to invalid user                                
+    test-send-both.sh                   sending nonexistent file to nonexistent user            
+
+    test-noncommand.sh                  chatting a non-recognised command
+
+SERVERCOMMANDS
+    test-kick-badchannel.sh             kicking client from nonexistent channel                 
+    test-kick-badclient.sh              kicking nonexistent client from channel                 
+    test-kick-badclientandchannel.sh    kicking nonexistent client from non existent channel    
+    test-kick-good.sh                   kicking correctly                                       
+
+    test-mute-badchannel.sh             muting client in nonexistent channel
+    test-mute-badclient.sh              muting nonexistent client in channel
+    test-mute-timer.sh                  muting for 0 or negative seconds
+    test-mute-good.sh                   muting client cannot chat or whisper
+    #test-mute-timeout.sh               muting client does not time them out                    # Manually testing this one
+
+                                                                                                
+    test-empty-bad.sh                   emptying a nonexistent channel                          
+    test-empty-multichannel.sh          only the correct channel is emptied                     
+    test-shutdown.sh                    shutting down server                                    
+
+                                                                                                
+                                                                                                
